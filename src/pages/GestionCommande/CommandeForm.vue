@@ -69,7 +69,7 @@
                   round
                   icon="visibility"
                   color="info"
-                  @click="redirectToFacture(props.row)"
+                  @click="viewCommande(props.row)"
                   :disable="loading"
                 />
                 <q-btn
@@ -94,6 +94,64 @@
             </q-td>
           </template>
         </q-table>
+
+        <!-- Modal d'ajout de commande -->
+        <q-dialog v-model="showAddModal" persistent>
+          <q-card style="min-width: 400px; max-width: 90vw;">
+            <q-card-section>
+              <div class="text-h6">Ajouter une Commande</div>
+            </q-card-section>
+            <q-card-section>
+              <q-form @submit.prevent="addCommande">
+                <q-select
+                  v-model="newCommande.id_client"
+                  :options="clientOptions"
+                  option-label="label"
+                  option-value="id"
+                  label="Client"
+                  dense
+                  outlined
+                  required
+                  class="q-mb-md"
+                />
+                <q-select
+                  v-model="newCommande.id_produit"
+                  :options="produitOptions"
+                  option-label="nom"
+                  option-value="id"
+                  label="Produit"
+                  dense
+                  outlined
+                  required
+                  class="q-mb-md"
+                />
+                <q-input
+                  v-model.number="newCommande.quantite"
+                  type="number"
+                  label="Quantité"
+                  min="1"
+                  dense
+                  outlined
+                  required
+                  class="q-mb-md"
+                />
+                <q-input
+                  v-model="newCommande.date_commande"
+                  type="date"
+                  label="Date Commande"
+                  dense
+                  outlined
+                  required
+                  class="q-mb-md"
+                />
+                <div class="row justify-end q-gutter-sm">
+                  <q-btn label="Annuler" color="negative" flat v-close-popup />
+                  <q-btn label="Ajouter" color="primary" type="submit" :loading="loading" />
+                </div>
+              </q-form>
+            </q-card-section>
+          </q-card>
+        </q-dialog>
 
         <!-- Dialog de facture -->
         <q-dialog v-model="showViewModal" persistent>
@@ -207,6 +265,7 @@
     </q-card>
   </div>
 </template>
+
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
@@ -250,20 +309,8 @@ const columns = [
   { name: "id", label: "ID", field: "id", align: "left", sortable: true },
   { name: "client", label: "Client", field: "id_client", align: "left" },
   { name: "produit", label: "Produit", field: "id_produit", align: "left" },
-  { 
-    name: "quantite", 
-    label: "Quantité", 
-    field: "quantite", 
-    align: "center", 
-    sortable: true 
-  },
-  { 
-    name: "date_commande", 
-    label: "Date Commande", 
-    field: "date_commande", 
-    align: "center", 
-    sortable: true 
-  },
+  { name: "quantite", label: "Quantité", field: "quantite", align: "center", sortable: true },
+  { name: "date_commande", label: "Date Commande", field: "date_commande", align: "center", sortable: true },
   { name: "actions", label: "Actions", align: "center" }
 ]
 
@@ -281,24 +328,19 @@ const loading = computed(() => commandeStore.loading || isLoading.value)
 
 const factureItems = computed(() => {
   if (!selectedCommande.value?.id_produit) return []
-  
   const produit = (produitStore.produits || []).find(p => p.id === selectedCommande.value.id_produit)
   if (!produit) return []
-  
   return [{
     id: 1,
     name: produit.nom || 'Produit inconnu',
     quantity: selectedCommande.value.quantite || 0,
-    unitPrice: (produit.prix || 0).toFixed(2),
-    total: ((produit.prix || 0) * (selectedCommande.value.quantite || 0)).toFixed(2)
+    unitPrice: Number(produit.prix || 0),
+    total: Number(produit.prix || 0) * Number(selectedCommande.value.quantite || 0)
   }]
 })
 
 const totalGeneral = computed(() => {
-  return parseFloat(factureItems.value.reduce(
-    (sum, item) => sum + parseFloat(item.total || 0), 
-    0
-  ).toFixed(2))
+  return factureItems.value.reduce((sum, item) => sum + Number(item.total || 0), 0)
 })
 
 const clientOptions = computed(() => {
@@ -410,9 +452,9 @@ async function addCommande() {
   try {
     isLoading.value = true
     await commandeStore.saveCommande(newCommande.value)
-    $q.notify({ 
-      type: "positive", 
-      message: "Commande ajoutée avec succès" 
+    $q.notify({
+      type: "positive",
+      message: "Commande ajoutée avec succès"
     })
     resetNewCommande()
     showAddModal.value = false
@@ -438,9 +480,9 @@ async function updateCommande() {
   try {
     isLoading.value = true
     await commandeStore.updateCommande(selectedCommande.value)
-    $q.notify({ 
-      type: "positive", 
-      message: "Commande mise à jour avec succès" 
+    $q.notify({
+      type: "positive",
+      message: "Commande mise à jour avec succès"
     })
     showEditModal.value = false
     await fetchCommandes()
@@ -471,9 +513,9 @@ async function deleteCommande(id) {
   try {
     isLoading.value = true
     await commandeStore.deleteCommande(id)
-    $q.notify({ 
-      type: "positive", 
-      message: "Commande supprimée avec succès" 
+    $q.notify({
+      type: "positive",
+      message: "Commande supprimée avec succès"
     })
     await fetchCommandes()
   } catch (error) {
@@ -544,6 +586,7 @@ defineExpose({
   resetNewCommande
 })
 </script>
+
 <style scoped>
 .commande-form-bg {
   min-height: 100vh;
