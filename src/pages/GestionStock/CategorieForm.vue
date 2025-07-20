@@ -50,7 +50,7 @@
                 round
                 icon="delete"
                 color="negative"
-                @click="deleteCategorie(props.row.id)"
+                @click="confirmDeleteCategorie(props.row.id)"
               />
             </q-td>
           </template>
@@ -147,6 +147,7 @@
                   color="grey"
                   class="q-ml-sm"
                   v-close-popup
+                  @click="showEditModal = false"
                 />
               </div>
             </q-form>
@@ -159,7 +160,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import { useQuasar } from "quasar";
+import { useQuasar, Dialog } from "quasar";
 import { useCategorieStore } from "src/stores/CategorieStore";
 
 const $q = useQuasar();
@@ -211,17 +212,9 @@ async function onSubmit() {
     categorie.value.designation = "";
     categorie.value.description = "";
     showAddModal.value = false;
+    await categorieStore.fetchCategories();
   } catch (e) {
     $q.notify({ type: "negative", message: "Erreur lors de l'enregistrement !" });
-  }
-}
-
-async function deleteCategorie(id) {
-  try {
-    await categorieStore.deleteCategorie(id);
-    $q.notify({ type: "positive", message: "Catégorie supprimée !" });
-  } catch (e) {
-    $q.notify({ type: "negative", message: "Erreur lors de la suppression !" });
   }
 }
 
@@ -230,15 +223,40 @@ function editCategorie(row) {
   showEditModal.value = true;
 }
 
-function onUpdate() {
-  const idx = categorieStore.categories.findIndex(
-    (cat) => cat.id === editCategorieData.value.id
-  );
-  if (idx !== -1) {
-    categorieStore.categories[idx] = { ...editCategorieData.value };
+async function onUpdate() {
+  try {
+    await categorieStore.updateCategorie({
+      id: editCategorieData.value.id,
+      designation: editCategorieData.value.designation,
+      description: editCategorieData.value.description,
+    });
     $q.notify({ type: "positive", message: "Catégorie modifiée !" });
+    showEditModal.value = false;
+    await categorieStore.fetchCategories();
+  } catch (e) {
+    $q.notify({ type: "negative", message: "Erreur lors de la modification !" });
   }
-  showEditModal.value = false;
+}
+
+function confirmDeleteCategorie(id) {
+  Dialog.create({
+    title: "Confirmation",
+    message: "Voulez-vous vraiment supprimer cette catégorie ?",
+    cancel: true,
+    persistent: true,
+  }).onOk(async () => {
+    await deleteCategorie(id);
+  });
+}
+
+async function deleteCategorie(id) {
+  try {
+    await categorieStore.deleteCategorie(id);
+    $q.notify({ type: "positive", message: "Catégorie supprimée !" });
+    await categorieStore.fetchCategories();
+  } catch (e) {
+    $q.notify({ type: "negative", message: "Erreur lors de la suppression !" });
+  }
 }
 </script>
 

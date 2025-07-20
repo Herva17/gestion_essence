@@ -114,15 +114,6 @@
                 :disable="categorieStore.loading"
                 required
               />
-              <!-- <q-input
-                v-model="produit.id_User"
-                label="ID Utilisateur"
-                type="number"
-                outlined
-                dense
-                color="primary"
-                min="0"
-              /> -->
 
               <div class="row justify-end">
                 <q-btn label="Enregistrer" color="primary" type="submit" icon="check" unelevated />
@@ -245,7 +236,6 @@ const produit = ref({
   prix_unitaire: '',
   id_categorie: '',
   id_User: '', // sera pré-rempli si user existe
-
 });
 const editProduitData = ref({
   id: null,
@@ -266,12 +256,46 @@ const categorieOptions = computed(() => categorieStore.categories);
 const columns = [
   { name: 'nom', label: 'Nom', field: 'nom', align: 'left' },
   { name: 'description', label: 'Description', field: 'description', align: 'left' },
-  { name: 'quantite', label: 'Quantité', field: 'quantite', align: 'right' },
-  { name: 'prix_unitaire', label: 'Prix unitaire', field: 'prix_unitaire', align: 'right', format: val => val + ' $' },
-  { name: 'date_creation ', label: 'Date Création', field: 'date_creation', align: 'right' },
-  { name: 'actions', label: 'Actions', field: 'actions', align: 'center', sortable: false }
+    { 
+    name: 'categorie', 
+    label: 'Catégorie', 
+    field: row => getCategorieName(row.id_categorie),
+    align: 'left'
+  },
+  { 
+    name: 'quantite', 
+    label: 'Quantité en litre', 
+    field: 'quantite', 
+    align: 'right', 
+     format: val => `${val ?? 0} Litres` // Utilisation de nullish coalescing
+  },
+  { 
+    name: 'prix_unitaire', 
+    label: 'Prix unitaire', 
+    field: 'prix_unitaire', 
+    align: 'right', 
+    format: (val) => `${val ?? ''} $` 
+  },
+  { 
+    name: 'date_creation',
+    label: 'Date Création', 
+    field: 'date_creation', 
+    align: 'right',
+    format: (val) => val ? new Date(val).toLocaleDateString() : '' // Formatage de date optionnel
+  },
+  { 
+    name: 'actions', 
+    label: 'Actions', 
+    align: 'center', 
+    sortable: false 
+  }
 ];
 
+function getCategorieName(id) {
+  if (!id || !categorieStore.categories) return "Non catégorisé";
+  const categorie = categorieStore.categories.find(c => c.id === id);
+  return categorie?.designation || "Non catégorisé";
+}
 // Notification stock insuffisant
 const produitsAlert = computed(() =>
   produits.value.filter(p => Number(p.quantite) <= 10)
@@ -298,28 +322,60 @@ function showNotif() {
   }
 }
 
-// Nouvelle version de onSubmit : enregistrement via l'API
+// Enregistrement via l'API avec FormData
 async function onSubmit() {
-  if (!produit.value.nom) return;
+  if (
+    !produit.value.nom ||
+    !produit.value.quantite ||
+    !produit.value.prix_unitaire ||
+    !produit.value.id_categorie ||
+    !produit.value.id_User
+  ) {
+    $q.notify({ type: 'negative', message: "Tous les champs obligatoires doivent être remplis !" });
+    return;
+  }
   try {
-    await produitStore.saveProduit({
+    // Debug : voir ce qui est envoyé
+    console.log('Produit envoyé:', {
       nom: produit.value.nom,
       description: produit.value.description,
       quantite: produit.value.quantite,
       prix_unitaire: produit.value.prix_unitaire,
       id_categorie: produit.value.id_categorie,
-      id_User: produit.value.id_User,
-      date_creation: produit.value.date_creation
+      id_User: produit.value.id_User
     });
+    const res = await produitStore.saveProduit({
+      nom: produit.value.nom,
+      description: produit.value.description,
+      quantite: produit.value.quantite,
+      prix_unitaire: produit.value.prix_unitaire,
+      id_categorie: produit.value.id_categorie,
+      id_User: produit.value.id_User
+    });
+    // Debug : voir la réponse de l'API
+    console.log('Réponse API:', res);
+
+    if (
+      !res.response ||
+      !res.response.succes ||
+      !res.response.data ||
+      res.response.data.length === 0
+    ) {
+      $q.notify({ type: 'negative', message: "Erreur lors de l'enregistrement (API) !" });
+      return;
+    }
+
     $q.notify({ type: 'positive', message: 'Produit enregistré !' });
-    produit.value = { nom: '', description: '', quantite: '', prix_unitaire: '', id_categorie: '', id_User: user.value ? user.value.id : '', date_creation: '' };
+    produit.value = { nom: '', description: '', quantite: '', prix_unitaire: '', id_categorie: '', id_User: user.value ? user.value.id : '' };
     showAddModal.value = false;
   } catch (e) {
     $q.notify({ type: 'negative', message: "Erreur lors de l'enregistrement !" });
   }
 }
 
+// Pour la suppression, il faudrait appeler une action du store si elle existe
 function deleteProduit(id) {
+  // Idéalement, créez une méthode produitStore.deleteProduit(id) qui fait l'appel API
   produitStore.produits = produitStore.produits.filter(p => p.id !== id);
   $q.notify({ type: 'negative', message: 'Produit supprimé.' });
 }
@@ -330,6 +386,7 @@ function editProduit(row) {
 }
 
 function onUpdate() {
+  // Idéalement, créez une méthode produitStore.updateProduit(editProduitData.value) qui fait l'appel API
   const idx = produitStore.produits.findIndex(p => p.id === editProduitData.value.id);
   if (idx !== -1) {
     produitStore.produits[idx] = { ...editProduitData.value };

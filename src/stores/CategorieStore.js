@@ -16,11 +16,11 @@ export const useCategorieStore = defineStore("categorie", {
         const response = await axios.get(
           "http://localhost/Api_Stock/categorie/select/?user=herva&mdp=mdp"
         );
-        this.categories = (response.data.me || []).map(cat => ({
+        this.categories = (response.data.me || []).map((cat) => ({
           id: cat.id,
           designation: cat.designation,
           description: cat.description,
-          date_creation: cat.date_creation
+          date_creation: cat.date_creation,
         }));
         this.loading = false;
       } catch (err) {
@@ -33,9 +33,10 @@ export const useCategorieStore = defineStore("categorie", {
         const response = await axios.get(
           "http://localhost/Api_Stock/categorie/compter/?user=herva&mdp=mdp"
         );
-        this.totalCategories = response.data.me && response.data.me[0]
-          ? response.data.me[0].total
-          : 0;
+        this.totalCategories =
+          response.data.me && response.data.me[0]
+            ? response.data.me[0].total
+            : 0;
       } catch (err) {
         this.totalCategories = 0;
       }
@@ -75,6 +76,30 @@ export const useCategorieStore = defineStore("categorie", {
         throw err;
       }
     },
+    // Modification d'une catégorie via l'API
+    async updateCategorie(categorie) {
+      this.loading = true;
+      this.error = null;
+      try {
+        const formData = new FormData();
+        formData.append("id", categorie.id);
+        formData.append("designation", categorie.designation);
+        formData.append("description", categorie.description);
+
+        const response = await axios.post(
+          "http://localhost/Api_Stock/categorie/update/?user=herva&mdp=mdp",
+          formData
+        );
+           console.log("Réponse API modification catégorie :", response.data);
+        // On peut rafraîchir la liste après modification si besoin
+        this.loading = false;
+        return response.data;
+      } catch (err) {
+        this.error = err;
+        this.loading = false;
+        throw err;
+      }
+    },
     // Suppression d'une catégorie via l'API
     async deleteCategorie(id) {
       this.loading = true;
@@ -92,7 +117,10 @@ export const useCategorieStore = defineStore("categorie", {
           response.data.me &&
           response.data.me.Reussite === "Catégorie supprimée avec succès"
         ) {
-          this.categories = this.categories.filter(cat => cat.id !== id);
+          // On force la comparaison en string pour éviter tout problème de type
+          this.categories = this.categories.filter(
+            (cat) => String(cat.id) !== String(id)
+          );
         }
         this.loading = false;
         return response.data;
@@ -101,6 +129,6 @@ export const useCategorieStore = defineStore("categorie", {
         this.loading = false;
         throw err;
       }
-    }
+    },
   },
 });

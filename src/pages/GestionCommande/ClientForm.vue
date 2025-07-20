@@ -239,7 +239,7 @@
 
 <script>
 import { ref, computed, onMounted } from 'vue';
-import { useQuasar } from 'quasar';
+import { useQuasar,Dialog } from 'quasar';
 import { useClientStore } from 'stores/ClientStore';
 
 export default {
@@ -295,6 +295,7 @@ export default {
         });
         resetNewClient();
         showAddModal.value = false;
+        // Pas besoin de fetchClients ici, le store le fait déjà
       } catch (error) {
         console.error('Erreur:', error);
         $q.notify({
@@ -326,6 +327,7 @@ export default {
           timeout: 2000
         });
         showEditModal.value = false;
+        // Pas besoin de fetchClients ici, le store le fait déjà
       } catch (error) {
         console.error('Erreur:', error);
         $q.notify({
@@ -338,7 +340,7 @@ export default {
     }
 
     function confirmDeleteClient(id) {
-      $q.dialog({
+      Dialog.create({
         title: 'Confirmer la suppression',
         message: 'Êtes-vous sûr de vouloir supprimer ce client ?',
         cancel: true,
@@ -367,6 +369,7 @@ export default {
           icon: 'check_circle',
           timeout: 2000
         });
+        // Pas besoin de fetchClients ici, le store le fait déjà
       } catch (error) {
         console.error('Erreur:', error);
         $q.notify({

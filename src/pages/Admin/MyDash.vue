@@ -220,6 +220,11 @@ export default {
     // Récupère le lien actif depuis localStorage lors du montage du composant
     link.value = localStorage.getItem("activeLink") || "dashboard";
 
+    // Ajout de la fonction updateLink pour éviter l'erreur
+    function updateLink(val) {
+      link.value = val;
+    }
+
     return {
       leftDrawerOpen,
       miniState,
@@ -227,6 +232,7 @@ export default {
         leftDrawerOpen.value = !leftDrawerOpen.value;
       },
       link,
+      updateLink, // expose la fonction au template
     };
   },
 };

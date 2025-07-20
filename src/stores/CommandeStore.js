@@ -58,6 +58,7 @@ export const useCommandeStore = defineStore("commande", {
           "http://localhost/Api_Stock/commande/save/?user=herva&mdp=mdp",
           formData
         );
+           console.log("Réponse API Enregistrement :", response.data);
 
         if (
           response.data.me &&

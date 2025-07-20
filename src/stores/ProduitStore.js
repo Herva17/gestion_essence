@@ -42,19 +42,18 @@ export const useProduitStore = defineStore("produit", {
         this.totalProduits = 0;
       }
     },
-    // Ajout d'un produit via l'API
+    // Ajout d'un produit via l'API (adapté pour FormData)
     async saveProduit(produit) {
       this.loading = true;
       this.error = null;
       try {
         const formData = new FormData();
-        formData.append("nom", produit.nom);
-        formData.append("description", produit.description);
-        formData.append("quantite", produit.quantite);
-        formData.append("prix_unitaire", produit.prix_unitaire);
-        formData.append("id_categorie", produit.id_categorie);
-        formData.append("id_User", produit.id_User);
-        formData.append("date_creation", produit.date_creation);
+        // N'envoie pas la date_creation, elle sera générée côté API
+        Object.entries(produit).forEach(([key, value]) => {
+          if (key !== 'date_creation') {
+            formData.append(key, value);
+          }
+        });
 
         const response = await axios.post(
           "http://localhost/Api_Stock/produit/enregistrer/?user=herva&mdp=mdp",

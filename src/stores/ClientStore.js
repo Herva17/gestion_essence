@@ -16,8 +16,6 @@ export const useClientStore = defineStore('client', {
         const response = await axios.get(
           'http://localhost/Api_Stock/client/select/?user=herva&mdp=mdp'
         );
-
-        // Transformation des données pour ignorer les propriétés numérotées
         this.clients = (response.data?.data || []).map(client => ({
           id: client.id,
           nom: client.nom || '',
@@ -28,7 +26,6 @@ export const useClientStore = defineStore('client', {
           email: client.email || '',
           date_creation: client.date_creation || ''
         }));
-
       } catch (err) {
         this.error = err;
         this.clients = [];
@@ -41,11 +38,22 @@ export const useClientStore = defineStore('client', {
     async saveClient(clientData) {
       this.loading = true;
       try {
+        const formData = new FormData();
+        // S'assurer que le champ "sexe" est bien transmis et non vide
+        Object.entries(clientData).forEach(([k, v]) => {
+          if (k === 'sexe') {
+            formData.append('sexe', v ? v : 'M');
+          } else {
+            formData.append(k, v);
+          }
+        });
+        // Debug : voir ce qui est envoyé
+        // for (let pair of formData.entries()) { console.log(pair[0]+ ': ' + pair[1]); }
         const response = await axios.post(
           'http://localhost/Api_Stock/client/save/?user=herva&mdp=mdp',
-          clientData
+          formData
         );
-        await this.fetchClients(); // Rafraîchir la liste
+        await this.fetchClients();
         return response.data;
       } catch (error) {
         console.error('Erreur lors de la sauvegarde:', error);
@@ -58,11 +66,21 @@ export const useClientStore = defineStore('client', {
     async updateClient(clientData) {
       this.loading = true;
       try {
+        const formData = new FormData();
+        Object.entries(clientData).forEach(([k, v]) => {
+          if (k === 'sexe') {
+            formData.append('sexe', v ? v : 'M');
+          } else {
+            formData.append(k, v);
+          }
+        });
+        // Debug : voir ce qui est envoyé
+        // for (let pair of formData.entries()) { console.log(pair[0]+ ': ' + pair[1]); }
         const response = await axios.post(
           'http://localhost/Api_Stock/client/update/?user=herva&mdp=mdp',
-          clientData
+          formData
         );
-        await this.fetchClients(); // Rafraîchir la liste
+        await this.fetchClients();
         return response.data;
       } catch (error) {
         console.error('Erreur lors de la mise à jour:', error);
@@ -75,11 +93,13 @@ export const useClientStore = defineStore('client', {
     async deleteClient(id) {
       this.loading = true;
       try {
+        const formData = new FormData();
+        formData.append('id', id);
         const response = await axios.post(
           'http://localhost/Api_Stock/client/delete/?user=herva&mdp=mdp',
-          { id }
+          formData
         );
-        await this.fetchClients(); // Rafraîchir la liste
+        await this.fetchClients();
         return response.data;
       } catch (error) {
         console.error('Erreur lors de la suppression:', error);
@@ -100,7 +120,6 @@ export const useClientStore = defineStore('client', {
       }));
     },
 
-    // Getter pour trouver un client par son ID
     getClientById: (state) => (id) => {
       return state.clients.find(client => client.id === id) || null;
     }
