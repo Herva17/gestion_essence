@@ -136,4 +136,20 @@ function commandes_par_produit()
     // Appel au modèle pour filtrer les commandes par produit
     return Commande::commandes_par_produit($id_produit);
 }
+function fiche_journaliere_vente()
+{
+       $result = Commande::fiche_journaliere_vente(); 
 
+    if (isset($result[0]) && is_array($result[0])) {
+        echo json_encode([
+            "succes" => true,
+            "data" => $result
+        ]);
+    } else {
+        echo json_encode([
+            "succes" => false,
+            "message" => $result["message"] ?? "Aucune donnée de stock trouvée"
+        ]);
+    }
+    exit;
+}

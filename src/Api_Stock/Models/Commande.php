@@ -169,4 +169,41 @@ class Commande
             return $response;
         }
     }
+
+   //rapports
+   public static function fiche_journaliere_vente()
+{
+    $pdo = get_connection();
+
+    $sql = "
+        SELECT 
+            DATE(c.date_commande) AS date_vente,
+            p.nom AS produit,
+            c.quantite,
+            p.prix_unitaire AS prix_usd,
+            (c.quantite * p.prix_unitaire) AS total_usd,
+            (c.quantite * p.prix_unitaire * 3000) AS total_fc,
+            CONCAT(cl.prenom, ' ', cl.nom) AS client,
+            CONCAT(u.prenom, ' ', u.nom) AS vendeur
+        FROM 
+            commandes c
+        JOIN 
+            produits p ON c.id_produit = p.id
+        LEFT JOIN 
+            clients cl ON c.id_client = cl.id
+        LEFT JOIN 
+            utilisateurs u ON c.id_user = u.id
+        WHERE 
+            DATE(c.date_commande) = CURDATE()
+        ORDER BY 
+            c.date_commande DESC
+    ";
+
+    $stmt = $pdo->query($sql);
+    $resultats = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    return $resultats ?: ["Message" => "Aucune vente enregistrée pour aujourd’hui"];
 }
+
+}
+   

@@ -199,6 +199,27 @@ function produits_par_categorie()
             "message" => $result["Message"] ?? "Aucun produit trouvé dans cette catégorie"
         ];
     }
+    
+}
+function selectionner_fiche_stock()
+{
+    $result = Produit::select_fiche_stock(); 
+
+    if (isset($result[0]) && is_array($result[0])) {
+        echo json_encode([
+            "succes" => true,
+            "data" => $result
+        ]);
+    } else {
+        echo json_encode([
+            "succes" => false,
+            "message" => $result["message"] ?? "Aucune donnée de stock trouvée"
+        ]);
+    }
+    exit;
 }
 
+
 // Gestion des requêtes
+
+

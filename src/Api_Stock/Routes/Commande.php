@@ -30,6 +30,10 @@ if ($url_path1 == "commande") {
             $data["me"] = commandes_par_produit();
             echo json_encode($data);
             exit;
+        } elseif ($url_path2 == "fiche_journaliere_vente") {
+            $data["me"] = fiche_journaliere_vente();
+            echo json_encode($data);
+            exit;
         }
     } 
     // POST requests

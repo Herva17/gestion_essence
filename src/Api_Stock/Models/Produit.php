@@ -167,4 +167,43 @@ public static function enregistrer($nom, $description, $quantite, $prix_unitaire
             return ["Message" => "Aucun produit trouvé dans cette catégorie"];
         }
     }
+// rapports    
+
+public static function select_fiche_stock()
+{
+    $pdo = get_connection();
+
+    $sql = "
+        SELECT 
+    p.nom AS produit,
+    (p.quantite + COALESCE(SUM(c.quantite), 0)) AS entrees,
+    COALESCE(SUM(c.quantite), 0) AS sorties,
+    p.quantite AS stock_actuel,
+
+    p.prix_unitaire AS prix_usd,
+    (p.prix_unitaire * 3000) AS prix_fc,
+
+    (p.quantite * p.prix_unitaire) AS total_usd,
+    (p.quantite * p.prix_unitaire * 3000) AS total_fc,
+
+    p.date_creation,
+    MAX(c.date_commande) AS derniere_sortie
+
+FROM 
+    produits p
+LEFT JOIN 
+    commandes c ON p.id = c.id_produit
+GROUP BY 
+    p.id, p.nom, p.quantite, p.prix_unitaire, p.date_creation
+ORDER BY 
+    p.nom;
+
+    ";
+
+    $stmt = $pdo->query($sql);
+    $resultats = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    return $resultats ?: ["Message" => "Aucune vente enregistrée pour aujourd’hui"];
+}
+
 }

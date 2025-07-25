@@ -9,25 +9,30 @@ $url_path2 = $url[3];
 
 if ($url_path1 == "produit") {
     // GET requests
-    if ($_SERVER["REQUEST_METHOD"] == "GET") {
-        if ($url_path2 == "select_all") {
-            $data["response"] = selectionner_produits();
-            echo json_encode($data);
-            exit;
-        } elseif ($url_path2 == "compter") {
-            $data["response"] = compter_produits();
-            echo json_encode($data);
-            exit;
-        } elseif ($url_path2 == "rechercher") {
-            $data["response"] = rechercher_produits();
-            echo json_encode($data);
-            exit;
-        } elseif ($url_path2 == "par_categorie") {
-            $data["response"] = produits_par_categorie();
-            echo json_encode($data);
-            exit;
-        }
-    } 
+   if ($_SERVER["REQUEST_METHOD"] == "GET") {
+    if ($url_path2 == "select_all") {
+        $data["response"] = selectionner_produits();
+        echo json_encode($data);
+        exit;
+    } elseif ($url_path2 == "compter") {
+        $data["response"] = compter_produits();
+        echo json_encode($data);
+        exit;
+    } elseif ($url_path2 == "rechercher") {
+        $data["response"] = rechercher_produits();
+        echo json_encode($data);
+        exit;
+    } elseif ($url_path2 == "par_categorie") {
+        $data["response"] = produits_par_categorie();
+        echo json_encode($data);
+        exit;
+    } elseif ($url_path2 == "fiche_stock") {
+        $data["response"] = selectionner_fiche_stock();
+        echo json_encode($data);
+        exit;
+    }
+}
+
     // POST requests
     elseif ($_SERVER["REQUEST_METHOD"] == "POST") {
         if ($url_path2 == "select_one") {

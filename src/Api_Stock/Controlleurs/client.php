@@ -12,7 +12,7 @@ function save_client()
     $Email = isset($_POST["email"]) ? htmlspecialchars(trim($_POST["email"])) : null;
     $Date_Creation = isset($_POST["date_creation"]) ? htmlspecialchars(trim($_POST["date_creation"])) : date("Y-m-d H:i:s");
 
-    if (!$Nom || !$Prenom || !$Telephone || !$Email) {
+    if (!$Nom || !$Prenom || !$Sexe || !$Telephone || !$Email) {
         echo json_encode([
             "succes" => false,
             "message" => "Les champs nom, prénom, téléphone et email sont obligatoires"

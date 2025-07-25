@@ -1,5 +1,6 @@
 <template>
   <q-layout view="hHh lpR lFf">
+    <!-- Header reste inchangé -->
     <q-header class="blondy text-white">
       <q-toolbar>
         <q-btn
@@ -57,9 +58,9 @@
         <hr />
 
         <q-list class="rounded-borders text-black">
+          <!-- Items existants (Dashboard, Client, Commande, Mouvement) -->
           <q-item
             to="/com/commande-dashboard"
-
             clickable
             v-ripple
             :active="link === 'dashboard'"
@@ -71,6 +72,7 @@
             </q-item-section>
             <q-item-section>Dashboard</q-item-section>
           </q-item>
+
           <q-item
             to="/com/client-form"
             exact
@@ -85,6 +87,7 @@
             </q-item-section>
             <q-item-section>Client</q-item-section>
           </q-item>
+
           <q-item
             to="/com/commande-form"
             exact
@@ -114,6 +117,47 @@
             </q-item-section>
             <q-item-section>Mouvement Stock</q-item-section>
           </q-item>
+
+          <!-- Section Rapports avec expandable -->
+          <q-separator spaced />
+          <q-expansion-item
+            icon="assessment"
+            label="Rapports"
+            :content-inset-level="0.5"
+            :class="{ 'my-menu-link-rapports': link.startsWith('rapports') }"
+          >
+            <q-item
+              to="/rapport"
+              exact
+              clickable
+              v-ripple
+              :active="link === 'rapports-fiche'"
+              @click="updateLink('rapports-fiche')"
+              :class="{ 'my-submenu-link': link === 'rapports-fiche' }"
+            >
+              <q-item-section avatar>
+                <q-icon name="inventory" />
+              </q-item-section>
+              <q-item-section>Fiche de stocks</q-item-section>
+            </q-item>
+
+            <q-item
+              to="/com/rapports/journal-vente"
+              exact
+              clickable
+              v-ripple
+              :active="link === 'rapports-journal'"
+              @click="updateLink('rapports-journal')"
+              :class="{ 'my-submenu-link': link === 'rapports-journal' }"
+            >
+              <q-item-section avatar>
+                <q-icon name="receipt" />
+              </q-item-section>
+              <q-item-section>Journal des ventes</q-item-section>
+            </q-item>
+          </q-expansion-item>
+
+          <!-- Section Aide -->
           <q-separator spaced />
           <q-item
             to=""
@@ -186,7 +230,6 @@ export default {
       const savedLink = loadActiveLink();
       link.value = savedLink;
 
-      // Redirection initiale si nécessaire
       if (router.currentRoute.value.path === "/com") {
         router.push(`/com/${savedLink}`);
       }
@@ -214,6 +257,18 @@ export default {
   background: -webkit-linear-gradient(to right, #E5E5BE, #003973)
   background: linear-gradient(to right, #E5E5BE, #003973)
 
+.my-menu-link-rapports
+  color: white !important
+  background: #4a148c
+  background: -webkit-linear-gradient(to right, #ff6f00, #4a148c)
+  background: linear-gradient(to right, #ff6f00, #4a148c)
+
+.my-submenu-link
+  color: white !important
+  background: #6a1b9a
+  background: -webkit-linear-gradient(to right, #ff9e00, #6a1b9a)
+  background: linear-gradient(to right, #ff9e00, #6a1b9a)
+
 .custom-border
   border-radius: 8px
   border: 1px solid #e0e0e0
@@ -231,4 +286,11 @@ export default {
 .fade-enter-from,
 .fade-leave-to
   opacity: 0
+
+/* Style pour l'expansion item */
+.q-expansion-item__content
+  background-color: rgba(0,0,0,0.03) !important
+
+.q-item__section--avatar
+  min-width: 40px !important
 </style>
