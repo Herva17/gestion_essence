@@ -58,6 +58,10 @@ const routes = [
         path: "rapport",
         component: () => import("pages/Rapport/FicheStock.vue"), // Ajout de la route pour FacturePage
       },
+          {
+        path: "journal-vente",
+        component: () => import("pages/Rapport/Fiche_journalierPage.vue"),
+      },
     ],
   },
 

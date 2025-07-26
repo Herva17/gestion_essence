@@ -170,7 +170,7 @@
             :class="{ 'my-menu-link-rapports': link.startsWith('rapports') }"
           >
             <q-item
-              to="/Main/rapports/fiche-stock"
+              to="/rapport"
               exact
               clickable
               v-ripple
@@ -185,7 +185,7 @@
             </q-item>
 
             <q-item
-              to="/Main/rapports/journal-vente"
+              to="/journal-vente"
               exact
               clickable
               v-ripple

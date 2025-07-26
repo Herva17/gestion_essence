@@ -142,7 +142,7 @@
             </q-item>
 
             <q-item
-              to="/com/rapports/journal-vente"
+              to="/journal-vente"
               exact
               clickable
               v-ripple
