@@ -21,6 +21,21 @@
         </div>
       </div>
 
+      <!-- Barre de recherche -->
+      <div class="search-bar q-mb-md">
+        <q-input
+          v-model="searchTerm"
+          outlined
+          placeholder="Rechercher un produit..."
+          clearable
+          class="bg-white"
+        >
+          <template v-slot:prepend>
+            <q-icon name="search" />
+          </template>
+        </q-input>
+      </div>
+
       <!-- Message d'erreur -->
       <q-banner v-if="error" class="bg-negative text-white q-mb-md">
         {{ error }}
@@ -89,40 +104,69 @@
         <q-markup-table flat bordered class="print-table">
           <thead>
             <tr class="bg-primary text-white">
-              <th class="text-left">Designation</th>
-              <th class="text-right">Entrées (L)</th>
-              <th class="text-right">Sorties (L)</th>
-              <th class="text-right">Stock Actuel</th>
-              <th class="text-right">Prix Unitaire ($)</th>
-              <th class="text-right">Prix Unitaire (FC)</th>
-              <th class="text-right">Valeur ($)</th>
-              <th class="text-right">Valeur (FC)</th>
-              <th class="text-center">Date Entrée</th>
-              <th class="text-center">Date Sortie</th>
+              <th rowspan="2" class="text-left">Produit</th>
+              <th colspan="4" class="text-center">Entrées</th>
+              <th colspan="4" class="text-center">Sorties</th>
+              <th colspan="4" class="text-center">Stock</th>
+            </tr>
+            <tr class="bg-primary text-white">
+              <!-- Sous-colonnes Entrées -->
+              <th class="text-center">Date</th>
+              <th class="text-right">Quantité</th>
+              <th class="text-right">P.U ($)</th>
+              <th class="text-right">P.T ($)</th>
+
+              <!-- Sous-colonnes Sorties -->
+              <th class="text-center">Date</th>
+              <th class="text-right">Quantité</th>
+              <th class="text-right">P.U ($)</th>
+              <th class="text-right">P.T ($)</th>
+
+              <!-- Sous-colonnes Stock -->
+              <th class="text-center">Date</th>
+              <th class="text-right">Quantité</th>
+              <th class="text-right">P.U ($)</th>
+              <th class="text-right">P.T ($)</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in stockData" :key="item.produit">
+            <tr v-for="item in filteredStockData" :key="item.produit">
               <td class="text-left">{{ item.produit }}</td>
+
+              <!-- Colonne Entrées -->
+              <td class="text-center">{{ formatDate(item.date_creation) }}</td>
               <td class="text-right">{{ item.entrees }}</td>
+              <td class="text-right">{{ item.prix_usd }}</td>
+              <td class="text-right">{{ item.entrees * item.prix_usd }}</td>
+
+              <!-- Colonne Sorties -->
+              <td class="text-center">{{ item.derniere_sortie ? formatDate(item.derniere_sortie) : '-' }}</td>
               <td class="text-right">{{ item.sorties }}</td>
+              <td class="text-right">{{ item.prix_usd }}</td>
+              <td class="text-right">{{ item.sorties * item.prix_usd }}</td>
+
+              <!-- Colonne Stock -->
+              <td class="text-center">{{ currentDate }}</td>
               <td class="text-right text-weight-bold">{{ item.stock_actuel }}</td>
               <td class="text-right">{{ item.prix_usd }}</td>
-              <td class="text-right">{{ item.prix_fc }}</td>
-              <td class="text-right">{{ item.total_usd }}</td>
-              <td class="text-right">{{ item.total_fc }}</td>
-              <td class="text-center">{{ formatDate(item.date_creation) }}</td>
-              <td class="text-center">{{ item.derniere_sortie ? formatDate(item.derniere_sortie) : '-' }}</td>
+              <td class="text-right">{{ item.stock_actuel * item.prix_usd }}</td>
             </tr>
           </tbody>
           <tfoot>
             <tr class="bg-grey-3">
-              <td colspan="3" class="text-right text-weight-bold">Total Général:</td>
+              <td colspan="1" class="text-right text-weight-bold">Total Général:</td>
+              <!-- Totaux Entrées -->
+              <td colspan="3"></td>
+              <td class="text-right text-weight-bold">{{ totals.totalEntreesUSD }}</td>
+
+              <!-- Totaux Sorties -->
+              <td colspan="3"></td>
+              <td class="text-right text-weight-bold">{{ totals.totalSortiesUSD }}</td>
+
+              <!-- Totaux Stock -->
+              <td colspan="2"></td>
               <td class="text-right text-weight-bold text-red">{{ totals.totalStock }}</td>
-              <td colspan="2"></td>
               <td class="text-right text-weight-bold">{{ totals.totalValueUSD }}</td>
-              <td class="text-right text-weight-bold">{{ totals.totalValueFC }}</td>
-              <td colspan="2"></td>
             </tr>
           </tfoot>
         </q-markup-table>
@@ -133,24 +177,24 @@
         <div class="col-md-4 col-sm-12 q-pa-sm">
           <q-card class="bg-blue-1">
             <q-card-section>
-              <div class="text-h6 text-center">Total Stock</div>
-              <div class="text-h4 text-center text-blue">{{ totals.totalStock }} L</div>
+              <div class="text-h6 text-center">Total Entrées</div>
+              <div class="text-h4 text-center text-blue">{{ totals.totalEntrees }} L</div>
             </q-card-section>
           </q-card>
         </div>
         <div class="col-md-4 col-sm-12 q-pa-sm">
           <q-card class="bg-green-1">
             <q-card-section>
-              <div class="text-h6 text-center">Valeur Totale ($)</div>
-              <div class="text-h4 text-center text-green">{{ totals.totalValueUSD }}</div>
+              <div class="text-h6 text-center">Total Sorties</div>
+              <div class="text-h4 text-center text-green">{{ totals.totalSorties }} L</div>
             </q-card-section>
           </q-card>
         </div>
         <div class="col-md-4 col-sm-12 q-pa-sm">
           <q-card class="bg-orange-1">
             <q-card-section>
-              <div class="text-h6 text-center">Valeur Totale (FC)</div>
-              <div class="text-h4 text-center text-orange">{{ totals.totalValueFC }}</div>
+              <div class="text-h6 text-center">Stock Actuel</div>
+              <div class="text-h4 text-center text-orange">{{ totals.totalStock }} L</div>
             </q-card-section>
           </q-card>
         </div>
@@ -190,6 +234,7 @@ export default {
       username: 'herva',
       password: 'mdp'
     })
+    const searchTerm = ref('')
 
     const fetchData = () => {
       stockStore.fetchStockData(authCredentials.value)
@@ -214,6 +259,41 @@ export default {
       return dateString ? date.formatDate(dateString, 'DD/MM/YYYY HH:mm') : '-'
     }
 
+    // Filtre les données selon le terme de recherche
+    const filteredStockData = computed(() => {
+      if (!Array.isArray(stockStore.stockData)) return []
+      if (!searchTerm.value) return stockStore.stockData
+      return stockStore.stockData.filter(item =>
+        item?.produit?.toLowerCase()?.includes(searchTerm.value.toLowerCase()) ?? false
+      )
+    })
+
+    // Calcul des totaux basés sur les données filtrées
+    const totals = computed(() => {
+      const data = filteredStockData.value
+
+      const totalEntrees = data.reduce((sum, item) => sum + (item.entrees || 0), 0)
+      const totalSorties = data.reduce((sum, item) => sum + (item.sorties || 0), 0)
+      const totalStock = data.reduce((sum, item) => sum + (item.stock_actuel || 0), 0)
+
+      const totalEntreesUSD = data.reduce((sum, item) =>
+        sum + ((item.entrees || 0) * (item.prix_usd || 0)), 0).toFixed(2)
+      const totalSortiesUSD = data.reduce((sum, item) =>
+        sum + ((item.sorties || 0) * (item.prix_usd || 0)), 0).toFixed(2)
+      const totalValueUSD = data.reduce((sum, item) =>
+        sum + ((item.stock_actuel || 0) * (item.prix_usd || 0)), 0).toFixed(2)
+
+      return {
+        totalEntrees,
+        totalSorties,
+        totalStock,
+        totalEntreesUSD,
+        totalSortiesUSD,
+        totalValueUSD,
+        // Ajoutez ici d'autres totaux si nécessaire
+      }
+    })
+
     onMounted(() => {
       fetchData()
     })
@@ -222,13 +302,15 @@ export default {
       logoUrl: "path/to/logo.png",
       currentDate: date.formatDate(Date.now(), 'DD/MM/YYYY'),
       stockData: computed(() => stockStore.stockData),
+      filteredStockData,
       loading: computed(() => stockStore.loading),
       error: computed(() => stockStore.error),
       authError: computed(() => stockStore.authError),
       lastUpdate: computed(() => stockStore.lastUpdate),
-      totals: computed(() => stockStore.totals()),
+      totals,
       authCredentials,
       showAuthDialog,
+      searchTerm,
       fetchData,
       submitAuth,
       printPage,
@@ -238,7 +320,6 @@ export default {
   }
 }
 </script>
-
 <style scoped>
 .stock-page {
   max-width: 1400px;
@@ -262,6 +343,11 @@ export default {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.search-bar {
+  max-width: 400px;
+  margin-bottom: 20px;
 }
 
 .stock-table-section {
@@ -297,17 +383,17 @@ export default {
 
   .print-table {
     width: 100% !important;
-    font-size: 11px;
+    font-size: 10px;
   }
 
   .print-table th {
     background-color: #1976d2 !important;
     color: white !important;
-    padding: 8px !important;
+    padding: 6px !important;
   }
 
   .print-table td {
-    padding: 6px !important;
+    padding: 4px !important;
   }
 
   .print-summary {
