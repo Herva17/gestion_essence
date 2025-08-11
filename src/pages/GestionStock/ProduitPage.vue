@@ -5,50 +5,6 @@
       <span class="text-grey-5 text-h6 q-ml-md">| NOS STATS</span>
     </div>
     <div class="row q-col-gutter-xl q-row-gutter-md justify-center">
-      <!-- Carte Produits -->
-      <div class="col-12 col-sm-6 col-md-3">
-        <q-card
-          class="pro-card bg-gradient-blue cursor-pointer"
-          @click="$router.push({ name: 'produit-form' })"
-        >
-          <q-card-section class="flex items-center">
-            <q-avatar
-              size="56px"
-              class="q-mr-md bg-white text-blue-600 shadow-2"
-            >
-              <q-icon name="inventory_2" size="32px" />
-            </q-avatar>
-            <div>
-              <div class="text-h5 text-white text-weight-bold">
-                {{ nbProduits }}
-              </div>
-              <div class="text-white text-subtitle2">Produits</div>
-            </div>
-          </q-card-section>
-        </q-card>
-      </div>
-      <!-- Carte Catégories -->
-      <div class="col-12 col-sm-6 col-md-3">
-        <q-card
-          class="pro-card bg-gradient-green cursor-pointer"
-          @click="$router.push({ name: 'categorie-form' })"
-        >
-          <q-card-section class="flex items-center">
-            <q-avatar
-              size="56px"
-              class="q-mr-md bg-white text-green-600 shadow-2"
-            >
-              <q-icon name="category" size="32px" />
-            </q-avatar>
-            <div>
-              <div class="text-h5 text-white text-weight-bold">
-                {{ nbCategories }}
-              </div>
-              <div class="text-white text-subtitle2">Catégories</div>
-            </div>
-          </q-card-section>
-        </q-card>
-      </div>
       <!-- Carte Tableau Catégories -->
       <div class="col-12 col-sm-6 col-md-3">
         <q-card
@@ -63,12 +19,34 @@
               <q-icon name="table_chart" size="32px" />
             </q-avatar>
             <div>
-              <div class="text-h5 text-white text-weight-bold">{{}}</div>
+              <div class="text-h5 text-white text-weight-bold">{{ nbApprovisionnements }}</div>
+              <div class="text-white text-subtitle2">Approvisionnements</div>
+            </div>
+          </q-card-section>
+        </q-card>
+      </div>
+
+      <!-- Carte Commandes -->
+      <div class="col-12 col-sm-6 col-md-3">
+        <q-card
+          class="pro-card bg-gradient-blue cursor-pointer"
+          @click="$router.push({ name: 'commande-table' })"
+        >
+          <q-card-section class="flex items-center">
+            <q-avatar
+              size="56px"
+              class="q-mr-md bg-white text-blue-600 shadow-2"
+            >
+              <q-icon name="shopping_cart" size="32px" />
+            </q-avatar>
+            <div>
+              <div class="text-h5 text-white text-weight-bold">{{ nbCommandes }}</div>
               <div class="text-white text-subtitle2">Commandes</div>
             </div>
           </q-card-section>
         </q-card>
       </div>
+
       <!-- Carte Mouvement Stock -->
       <div class="col-12 col-sm-6 col-md-3">
         <q-card
@@ -84,9 +62,9 @@
             </q-avatar>
             <div>
               <div class="text-h5 text-white text-weight-bold">
-                {{ nbMouvements }}
+                {{  }}
               </div>
-              <div class="text-white text-subtitle2">Mouvement</div>
+              <div class="text-white text-subtitle2">Ventes</div>
             </div>
           </q-card-section>
         </q-card>
@@ -96,24 +74,41 @@
 </template>
 
 <script setup>
-import { onMounted, computed } from "vue";
-import { useProduitStore } from "src/stores/ProduitStore";
-import { useCategorieStore } from "src/stores/CategorieStore";
+import { onMounted, computed, ref } from "vue";
+import { useCategorieStore } from "src/stores/ProduitStore";
 import { useMouvementStore } from "src/stores/MouvementStore";
+import { useCommandeStore } from "src/stores/CommandeStore";
+import { useApprovisionnementStore } from "src/stores/ApprovisionnementStore";
 
-const produitStore = useProduitStore();
 const categorieStore = useCategorieStore();
 const mouvementStore = useMouvementStore();
+const commandeStore = useCommandeStore();
+const approvisionnementStore = useApprovisionnementStore();
 
-onMounted(() => {
-  produitStore.fetchTotalProduits();
-  categorieStore.fetchTotalCategories();
-  mouvementStore.fetchTotalMouvements();
+// Initialisation
+const loading = ref(true);
+
+onMounted(async () => {
+  try {
+    loading.value = true;
+    await Promise.all([
+      categorieStore.fetchTotalCategories(),
+      mouvementStore.fetchTotalMouvements(),
+      commandeStore.fetchTotalCommandes(),
+      approvisionnementStore.countApprovisionnements()
+    ]);
+  } catch (error) {
+    console.error("Erreur de chargement:", error);
+  } finally {
+    loading.value = false;
+  }
 });
 
-const nbProduits = computed(() => produitStore.totalProduits);
-const nbCategories = computed(() => categorieStore.totalCategories);
-const nbMouvements = computed(() => mouvementStore.totalMouvements);
+// Computed properties
+const nbCategories = computed(() => categorieStore.totalCategories || 0);
+const nbMouvements = computed(() => mouvementStore.totalMouvements || 0);
+const nbCommandes = computed(() => commandeStore.totalCommandes || 0);
+const nbApprovisionnements = computed(() => approvisionnementStore.totalApprovisionnements || 0);
 </script>
 
 <style scoped>

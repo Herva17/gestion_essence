@@ -4,7 +4,7 @@
       <!-- Bandeau titre -->
       <div class="categorie-title-bar q-pa-md q-mb-md">
         <div class="text-h5 text-white text-weight-bold">
-          <q-icon name="category" class="q-mr-sm" /> Gestion des Catégories
+          <q-icon name="category" class="q-mr-sm" /> Gestion des produits
         </div>
       </div>
       <!-- Fin bandeau titre -->
@@ -12,12 +12,12 @@
       <q-card-section>
         <div class="row items-center justify-between">
           <div class="text-h5 text-primary text-weight-bold">
-            Liste des Catégories
+            Liste des produits
           </div>
           <q-btn
             color="primary"
             icon="add"
-            label="Ajouter Catégorie"
+            label="Ajouter un produit"
             @click="showAddModal = true"
           />
         </div>
@@ -61,7 +61,7 @@
       <q-dialog v-model="showAddModal">
         <q-card style="min-width: 350px">
           <q-card-section>
-            <div class="text-h6">Ajouter une Catégorie</div>
+            <div class="text-h6">Ajouter un produit</div>
           </q-card-section>
           <q-card-section>
             <q-form @submit.prevent="onSubmit" class="q-gutter-md">
@@ -110,7 +110,7 @@
       <q-dialog v-model="showEditModal">
         <q-card style="min-width: 350px">
           <q-card-section>
-            <div class="text-h6">Modifier la Catégorie</div>
+            <div class="text-h6">Modifier le Produit</div>
           </q-card-section>
           <q-card-section>
             <q-form @submit.prevent="onUpdate" class="q-gutter-md">
@@ -161,7 +161,7 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useQuasar, Dialog } from "quasar";
-import { useCategorieStore } from "src/stores/CategorieStore";
+import { useCategorieStore } from "src/stores/ProduitStore";
 
 const $q = useQuasar();
 const categorieStore = useCategorieStore();
@@ -230,7 +230,7 @@ async function onUpdate() {
       designation: editCategorieData.value.designation,
       description: editCategorieData.value.description,
     });
-    $q.notify({ type: "positive", message: "Catégorie modifiée !" });
+    $q.notify({ type: "positive", message: "Produit modifiée !" });
     showEditModal.value = false;
     await categorieStore.fetchCategories();
   } catch (e) {

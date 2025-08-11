@@ -2,9 +2,7 @@
   <div class="q-pa-md commande-form-bg">
     <q-card class="q-pa-lg commande-form-card">
       <!-- Bandeau titre -->
-      <div
-        class="commande-title-bar q-pa-md q-mb-md row items-center justify-between"
-      >
+      <div class="commande-title-bar q-pa-md q-mb-md row items-center justify-between">
         <div class="text-h5 text-white text-weight-bold">
           <q-icon name="shopping_cart" class="q-mr-sm" />
           Gestion des Commandes
@@ -52,13 +50,13 @@
         >
           <template #body-cell-client="props">
             <q-td :props="props">
-              {{ getClientName(props.row.id_client) }}
+              {{ props.row.client }}
             </q-td>
           </template>
 
           <template #body-cell-produit="props">
             <q-td :props="props">
-              {{ getProduitName(props.row.id_produit) }}
+              {{ props.row.produit }}
             </q-td>
           </template>
 
@@ -99,78 +97,22 @@
 
         <!-- Modal d'ajout de commande -->
         <q-dialog v-model="showAddModal" persistent>
-    <q-card style="min-width: 400px; max-width: 90vw;">
-      <q-card-section>
-        <div class="text-h6">Ajouter une Commande</div>
-      </q-card-section>
-      <q-card-section>
-        <q-form @submit.prevent="addCommande">
-          <!-- Champ ID User (lecture seule) -->
-          <q-input
-            v-model="newCommande.id_User"
-            label="ID Utilisateur (automatique)"
-            dense
-            outlined
-            readonly
-            class="q-mb-md"
-            hint="ID récupéré depuis la session"
-          />
-
-          <q-select
-            v-model="newCommande.id_client"
-            :options="clientOptions"
-            option-label="label"
-            option-value="id"
-            emit-value
-            map-options
-            label="Client"
-            dense
-            outlined
-            required
-            class="q-mb-md"
-          />
-          <q-select
-            v-model="newCommande.id_produit"
-            :options="produitOptions"
-            option-label="nom"
-            option-value="id"
-            emit-value
-            map-options
-            label="Produit"
-            dense
-            outlined
-            required
-            class="q-mb-md"
-            @update:model-value="checkStock"
-          />
-          <q-input
-            v-model.number="newCommande.quantite"
-            type="number"
-            label="Quantité"
-            min="1"
-            dense
-            outlined
-            required
-            class="q-mb-md"
-            @update:model-value="checkStock"
-          />
-          <div class="row justify-end q-gutter-sm">
-            <q-btn label="Annuler" color="negative" flat v-close-popup />
-            <q-btn label="Ajouter" color="primary" type="submit" :loading="loading" />
-          </div>
-        </q-form>
-      </q-card-section>
-    </q-card>
-  </q-dialog>
-
-        <!-- Modal de modification de commande -->
-        <q-dialog v-model="showEditModal" persistent>
           <q-card style="min-width: 400px; max-width: 90vw">
             <q-card-section>
-              <div class="text-h6">Modifier la Commande</div>
+              <div class="text-h6">Ajouter une Commande</div>
             </q-card-section>
             <q-card-section>
-              <q-form @submit.prevent="updateCommande">
+              <q-form @submit.prevent="checkStockBeforeSubmit">
+                <q-input
+                  v-model="newCommande.id_User"
+                  label="ID Utilisateur (automatique)"
+                  dense
+                  outlined
+                  readonly
+                  class="q-mb-md"
+                  hint="ID récupéré depuis la session"
+                />
+
                 <q-select
                   v-model="newCommande.id_client"
                   :options="clientOptions"
@@ -184,14 +126,91 @@
                   required
                   class="q-mb-md"
                 />
+
                 <q-select
-                  v-model="newCommande.id_produit"
-                  :options="produitOptions"
-                  option-label="nom"
+                  v-model="newCommande.Id_appro"
+                  :options="approOptions"
+                  option-label="label"
                   option-value="id"
                   emit-value
                   map-options
-                  label="Produit"
+                  label="Approvisionnement"
+                  dense
+                  outlined
+                  required
+                  class="q-mb-md"
+                  @update:model-value="updateSelectedAppro"
+                />
+
+                <div class="q-mb-md">
+                  <div class="text-caption">Stock disponible: {{ selectedApproStock }}</div>
+                  <div class="text-caption">Prix unitaire: {{ selectedApproPrice }} $</div>
+                </div>
+
+                <q-input
+                  v-model.number="newCommande.quantite"
+                  type="number"
+                  label="Quantité"
+                  min="1"
+                  :max="selectedApproStock"
+                  dense
+                  outlined
+                  required
+                  class="q-mb-md"
+                  @update:model-value="checkStock"
+                />
+
+                <q-banner
+                  v-if="stockAlert"
+                  class="bg-red-2 text-red q-mb-md"
+                >
+                  Stock insuffisant! Après cette commande, il restera {{ remainingStock }} unités (minimum 50 requis)
+                </q-banner>
+
+                <div class="row justify-end q-gutter-sm">
+                  <q-btn label="Annuler" color="negative" flat v-close-popup />
+                  <q-btn
+                    label="Ajouter"
+                    color="primary"
+                    type="submit"
+                    :loading="loading"
+                    :disable="stockAlert"
+                  />
+                </div>
+              </q-form>
+            </q-card-section>
+          </q-card>
+        </q-dialog>
+
+        <!-- Modal de modification de commande -->
+        <q-dialog v-model="showEditModal" persistent>
+          <q-card style="min-width: 400px; max-width: 90vw">
+            <q-card-section>
+              <div class="text-h6">Modifier la Commande</div>
+            </q-card-section>
+            <q-card-section>
+              <q-form @submit.prevent="updateCommande">
+                <q-select
+                  v-model="selectedCommande.id_client"
+                  :options="clientOptions"
+                  option-label="label"
+                  option-value="id"
+                  emit-value
+                  map-options
+                  label="Client"
+                  dense
+                  outlined
+                  required
+                  class="q-mb-md"
+                />
+                <q-select
+                  v-model="selectedCommande.Id_appro"
+                  :options="approOptions"
+                  option-label="label"
+                  option-value="id"
+                  emit-value
+                  map-options
+                  label="Approvisionnement"
                   dense
                   outlined
                   required
@@ -230,16 +249,11 @@
               <q-btn icon="close" flat round dense v-close-popup />
             </q-card-section>
 
-            <!-- Contenu de la facture -->
             <q-card-section>
               <div class="facture-page">
-                <!-- Section du logo -->
                 <div class="logo-section text-center mb-4">
                   <q-img
-                    :src="
-                      logoUrl ||
-                      'https://via.placeholder.com/150x80?text=KMJ+Logo'
-                    "
+                    :src="logoUrl || 'https://via.placeholder.com/150x80?text=KMJ+Logo'"
                     style="max-width: 150px; height: auto"
                   />
                   <div class="text-h6 text-weight-bold q-mt-sm">
@@ -247,10 +261,8 @@
                   </div>
                 </div>
 
-                <!-- Titre de la facture -->
                 <h1 class="facture-title text-center mb-8">FACTURE CLIENT</h1>
 
-                <!-- Informations du client -->
                 <div class="client-info q-mb-md">
                   <div class="text-subtitle1 text-weight-bold">
                     INFORMATIONS CLIENT
@@ -260,7 +272,7 @@
                     <div class="col-6">
                       <p>
                         <strong>Nom:</strong>
-                        {{ getClientFullName(selectedCommande.id_client) }}
+                        {{ selectedCommande.client }}
                       </p>
                       <p>
                         <strong>Téléphone:</strong>
@@ -279,7 +291,6 @@
                   </div>
                 </div>
 
-                <!-- Détails de la facture -->
                 <div class="facture-details">
                   <div class="text-subtitle1 text-weight-bold">
                     DÉTAILS DE LA FACTURE
@@ -299,9 +310,7 @@
                       <q-td :props="props">
                         {{ props.row.unitPrice }} $
                         <br />
-                        {{
-                          (props.row.unitPrice * exchangeRate).toLocaleString()
-                        }}
+                        {{ (props.row.unitPrice * exchangeRate).toLocaleString() }}
                         FC
                       </q-td>
                     </template>
@@ -310,15 +319,12 @@
                       <q-td :props="props">
                         {{ props.row.total }} $
                         <br />
-                        {{
-                          (props.row.total * exchangeRate).toLocaleString()
-                        }}
+                        {{ (props.row.total * exchangeRate).toLocaleString() }}
                         FC
                       </q-td>
                     </template>
                   </q-table>
 
-                  <!-- Total de la facture -->
                   <div class="facture-total text-right q-mt-md">
                     <div class="text-h6">
                       <strong>TOTAL:</strong>
@@ -331,10 +337,7 @@
                   </div>
                 </div>
 
-                <!-- Boutons d'action -->
-                <div
-                  class="print-button-section q-mt-lg flex justify-center gap-2"
-                >
+                <div class="print-button-section q-mt-lg flex justify-center gap-2">
                   <q-btn
                     color="primary"
                     icon="print"
@@ -370,34 +373,31 @@ import { ref, computed, onMounted } from "vue";
 import { useQuasar } from "quasar";
 import { useCommandeStore } from "stores/CommandeStore";
 import { useClientStore } from "stores/ClientStore";
-import { useProduitStore } from "stores/ProduitStore";
+import { useApprovisionnementStore } from "stores/ApprovisionnementStore";
 
 const $q = useQuasar();
 const commandeStore = useCommandeStore();
 const clientStore = useClientStore();
-const produitStore = useProduitStore();
-
-// Récupérer l'ID de l'utilisateur connecté depuis le localStorage
-const getCurrentUserId = () => {
-  const user = JSON.parse(localStorage.getItem("user"));
-  return user?.id || 1; // Valeur par défaut si non trouvé
-};
+const approStore = useApprovisionnementStore();
 
 // États réactifs
 const newCommande = ref({
   id_client: null,
-  id_produit: null,
-  id_User: getCurrentUserId(), // Utilisation de l'ID utilisateur connecté
+  Id_appro: null,
+  id_User: 1,
   quantite: 1,
 });
 
 const selectedCommande = ref({
   id: null,
   id_client: null,
-  id_produit: null,
-  id_User: getCurrentUserId(),
+  Id_appro: null,
+  id_User: 1,
   quantite: 1,
   date_commande: "",
+  client: "",
+  produit: "",
+  prix_unitaire: 0
 });
 
 const showAddModal = ref(false);
@@ -407,81 +407,33 @@ const logoUrl = ref(null);
 const logoInput = ref(null);
 const exchangeRate = ref(3000);
 const isLoading = ref(false);
+const selectedApproStock = ref(0);
+const selectedApproPrice = ref(0);
+const stockAlert = ref(false);
+const remainingStock = ref(0);
 
+// Colonnes du tableau
 const columns = [
   { name: "id", label: "ID", field: "id", align: "left", sortable: true },
-  { name: "client", label: "Client", field: "id_client", align: "left" },
-  { name: "produit", label: "Produit", field: "id_produit", align: "left" },
-  {
-    name: "quantite",
-    label: "Quantité",
-    field: "quantite",
-    align: "center",
-    sortable: true,
-  },
-   {
-    name: 'prix_unitaire',
-    label: 'Prix Unitaire',
-    field: row => getProduitQuantite(row.id_produit),
-    align: 'left'
-  },
-  {
-    name: "date_commande",
-    label: "Date Commande",
-    field: "date_commande",
-    align: "center",
-    sortable: true,
-  },
+  { name: "client", label: "Client", field: "client", align: "left" },
+  { name: "produit", label: "Produit", field: "produit", align: "left" },
+  { name: "quantite", label: "Quantité", field: "quantite", align: "center", sortable: true },
+  { name: "prix_unitaire", label: "Prix Unitaire", field: "prix_unitaire", align: "right" },
+  { name: "date_commande", label: "Date Commande", field: "date_commande", align: "center", sortable: true },
   { name: "actions", label: "Actions", align: "center" },
 ];
 
 const factureColumns = [
   { name: "name", label: "ARTICLE", field: "name", align: "left" },
   { name: "quantity", label: "QUANTITÉ", field: "quantity", align: "center" },
-  {
-    name: "unitPrice",
-    label: "PRIX UNITAIRE",
-    field: "unitPrice",
-    align: "right",
-  },
+  { name: "unitPrice", label: "PRIX UNITAIRE", field: "unitPrice", align: "right" },
   { name: "total", label: "TOTAL", field: "total", align: "right" },
 ];
 
+// Computed properties
 const commandes = computed(() => commandeStore.commandes || []);
 const totalCommandes = computed(() => commandeStore.totalCommandes || 0);
 const loading = computed(() => commandeStore.loading || isLoading.value);
-
-const factureItems = computed(() => {
-  if (!selectedCommande.value?.id_produit) return [];
-  const produit = (produitStore.produits || []).find(
-    (p) => p.id === selectedCommande.value.id_produit
-  );
-  if (!produit) return [];
-  return [
-    {
-      id: 1,
-      name: produit.nom || "Produit inconnu",
-      quantity: selectedCommande.value.quantite || 0,
-      unitPrice: Number(produit.prix_unitaire || 0),
-      total:
-        Number(produit.prix_unitaire || 0) *
-        Number(selectedCommande.value.quantite || 0),
-    },
-  ];
-});
-
-function getProduitQuantite(id) {
-  if (!id || !produitStore.produits) return "Non catégorisé";
-  const produit = produitStore.produits.find(c => c.id === id);
-  return produit?.prix_unitaire || "Non catégorisé";
-}
-
-const totalGeneral = computed(() => {
-  return factureItems.value.reduce(
-    (sum, item) => sum + Number(item.total || 0),
-    0
-  );
-});
 
 const clientOptions = computed(() => {
   return (clientStore.clients || [])
@@ -491,61 +443,74 @@ const clientOptions = computed(() => {
       prenom: client.prenom,
       telephone: client.telephone,
       email: client.email,
-      label: `${client.prenom || ""} ${client.nom || ""} (${
-        client.telephone || ""
-      })`.trim(),
+      label: `${client.prenom || ""} ${client.nom || ""} (${client.telephone || ""})`.trim(),
     }))
     .filter((c) => c.label !== "()");
 });
 
-const produitOptions = computed(() => produitStore.produits || []);
+const approOptions = computed(() => {
+  return (approStore.approvisionnements || [])
+    .map((appro) => ({
+      id: appro.id_approvisionnement,
+      label: `${appro.produit_nom} (Stock: ${appro.quantite}) - ${appro.prix_unitaire}$`,
+      prix_unitaire: appro.prix_unitaire,
+      quantite: appro.quantite,
+      designation: appro.designation
+    }));
+});
 
-function getClientName(id) {
-  if (!id || !clientStore.clients) return "Client inconnu";
-  const client = clientStore.clients.find((c) => c.id === id);
-  return client
-    ? `${client.prenom || ""} ${client.nom || ""} (${
-        client.telephone || ""
-      })`.trim()
-    : "Client inconnu";
-}
+const factureItems = computed(() => {
+  return [
+    {
+      id: 1,
+      name: selectedCommande.value.produit || "Produit inconnu",
+      quantity: selectedCommande.value.quantite || 0,
+      unitPrice: Number(selectedCommande.value.prix_unitaire || 0),
+      total: Number(selectedCommande.value.prix_unitaire || 0) * Number(selectedCommande.value.quantite || 0),
+    },
+  ];
+});
 
-function getClientFullName(id) {
-  if (!id || !clientStore.clients) return "Client inconnu";
-  const client = clientStore.clients.find((c) => c.id === id);
-  return client
-    ? `${client.prenom || ""} ${client.nom || ""}`.trim()
-    : "Client inconnu";
-}
+const totalGeneral = computed(() => {
+  return factureItems.value.reduce((sum, item) => sum + Number(item.total || 0), 0);
+});
 
-function getClientPhone(id) {
-  if (!id || !clientStore.clients) return "Non disponible";
-  const client = clientStore.clients.find((c) => c.id === id);
-  return client?.telephone || "Non disponible";
-}
-
-function getClientEmail(id) {
-  if (!id || !clientStore.clients) return "Non disponible";
-  const client = clientStore.clients.find((c) => c.id === id);
-  return client?.email || "Non disponible";
-}
-
-function getProduitName(id) {
-  if (!id || !produitStore.produits) return "Inconnu";
-  const produit = produitStore.produits.find((p) => p.id === id);
-  return produit?.nom || "Inconnu";
-}
-
-function formatDate(dateString) {
-  if (!dateString) return "Date inconnue";
-  try {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("fr-FR");
-  } catch {
-    return dateString;
+// Méthodes de gestion du stock
+const updateSelectedAppro = (approId) => {
+  const appro = approStore.approvisionnements.find(a => a.id_approvisionnement === approId);
+  if (appro) {
+    selectedApproStock.value = appro.quantite;
+    selectedApproPrice.value = appro.prix_unitaire;
+    checkStock();
   }
-}
+};
 
+const checkStock = () => {
+  if (!newCommande.value.Id_appro || !newCommande.value.quantite) {
+    stockAlert.value = false;
+    return;
+  }
+
+  remainingStock.value = selectedApproStock.value - newCommande.value.quantite;
+  stockAlert.value = remainingStock.value < 50;
+};
+
+const checkStockBeforeSubmit = async () => {
+  checkStock();
+  
+  if (stockAlert.value) {
+    $q.notify({
+      type: "negative",
+      message: `Stock insuffisant! Il resterait ${remainingStock.value} unités après cette commande (minimum 50 requis)`,
+      position: "top"
+    });
+    return;
+  }
+
+  await addCommande();
+};
+
+// Méthodes principales
 async function fetchCommandes() {
   try {
     isLoading.value = true;
@@ -553,7 +518,7 @@ async function fetchCommandes() {
       commandeStore.fetchCommandes(),
       commandeStore.fetchTotalCommandes(),
       clientStore.fetchClients(),
-      produitStore.fetchProduits(),
+      approStore.fetchApprovisionnements(),
     ]);
   } catch (error) {
     $q.notify({
@@ -595,44 +560,11 @@ function openAddModal() {
   showAddModal.value = true;
 }
 
-// Fonction pour vérifier le stock en temps réel
-function checkStock() {
-  if (!newCommande.value.id_produit || !newCommande.value.quantite) return;
-
-  const produit = produitStore.produits.find(p => p.id === newCommande.value.id_produit);
-
-  if (!produit) {
-    console.warn("Produit non trouvé");
-    return;
-  }
-
-  console.log("Vérification stock:", {
-    quantite: newCommande.value.quantite,
-    stock: produit.stock
-  });
-
-  if (newCommande.value.quantite > produit.stock) {
-    $q.notify({
-      type: "negative",
-      message: `Stock insuffisant! Disponible: ${produit.stock}, Demandé: ${newCommande.value.quantite}`,
-      position: "top",
-      timeout: 5000,
-      actions: [{ icon: "warning", color: "white" }]
-    });
-    return true; // Retourne true si stock insuffisant
-  }
-  return false; // Retourne false si stock suffisant
-}
-
 async function addCommande() {
-  if (
-    !newCommande.value.id_client ||
-    !newCommande.value.id_produit ||
-    !newCommande.value.quantite
-  ) {
+  if (!newCommande.value.id_client || !newCommande.value.Id_appro || !newCommande.value.quantite) {
     $q.notify({
       type: "negative",
-      message: "Les champs Client, Produit et Quantité sont obligatoires"
+      message: "Les champs Client, Approvisionnement et Quantité sont obligatoires",
     });
     return;
   }
@@ -641,35 +573,34 @@ async function addCommande() {
     isLoading.value = true;
     const response = await commandeStore.saveCommande({
       id_client: Number(newCommande.value.id_client),
-      id_produit: Number(newCommande.value.id_produit),
+      Id_appro: Number(newCommande.value.Id_appro),
       id_User: Number(newCommande.value.id_User),
-      quantite: Number(newCommande.value.quantite)
+      quantite: Number(newCommande.value.quantite),
     });
 
-    // Gestion de la réponse de l'API
-    if (response && response.success === false) {
+    if (response && response.succes === false) {
       $q.notify({
         type: "negative",
         message: response.message || "Erreur lors de l'ajout de la commande",
         position: "top",
-        timeout: 5000
+        timeout: 5000,
       });
       return;
     }
 
     $q.notify({
       type: "positive",
-      message: "Commande ajoutée avec succès"
+      message: "Commande ajoutée avec succès",
     });
     resetNewCommande();
     showAddModal.value = false;
     await fetchCommandes();
   } catch (error) {
-    console.error("Erreur API:", error.response?.data); // Log pour débogage
+    console.error("Erreur API:", error.response?.data);
     $q.notify({
       type: "negative",
       message: error.response?.data?.message || "Erreur lors de l'ajout de la commande",
-      caption: error.message
+      caption: error.message,
     });
   } finally {
     isLoading.value = false;
@@ -687,7 +618,7 @@ async function updateCommande() {
     await commandeStore.updateCommande({
       id: selectedCommande.value.id,
       id_client: selectedCommande.value.id_client,
-      id_produit: selectedCommande.value.id_produit,
+      Id_appro: selectedCommande.value.Id_appro,
       id_User: selectedCommande.value.id_User,
       quantite: selectedCommande.value.quantite,
     });
@@ -700,9 +631,7 @@ async function updateCommande() {
   } catch (error) {
     $q.notify({
       type: "negative",
-      message:
-        error.response?.data?.message ||
-        "Erreur lors de la mise à jour de la commande",
+      message: error.response?.data?.message || "Erreur lors de la mise à jour de la commande",
       caption: error.message,
     });
   } finally {
@@ -733,9 +662,7 @@ async function deleteCommande(id) {
   } catch (error) {
     $q.notify({
       type: "negative",
-      message:
-        error.response?.data?.message ||
-        "Erreur lors de la suppression de la commande",
+      message: error.response?.data?.message || "Erreur lors de la suppression de la commande",
       caption: error.message,
     });
   } finally {
@@ -743,57 +670,37 @@ async function deleteCommande(id) {
   }
 }
 
+function getClientPhone(id) {
+  if (!id || !clientStore.clients) return "Non disponible";
+  const client = clientStore.clients.find((c) => c.id === id);
+  return client?.telephone || "Non disponible";
+}
+
+function formatDate(dateString) {
+  if (!dateString) return "Date inconnue";
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("fr-FR");
+  } catch {
+    return dateString;
+  }
+}
+
 function resetNewCommande() {
   newCommande.value = {
     id_client: null,
-    id_produit: null,
-    id_User: getCurrentUserId(),
+    Id_appro: null,
+    id_User: 1,
     quantite: 1,
   };
+  selectedApproStock.value = 0;
+  selectedApproPrice.value = 0;
+  stockAlert.value = false;
 }
 
+// Lifecycle hook
 onMounted(() => {
   fetchCommandes();
-});
-
-defineExpose({
-  commandes,
-  totalCommandes,
-  loading,
-  clientStore,
-  produitStore,
-  newCommande,
-  selectedCommande,
-  showAddModal,
-  showEditModal,
-  showViewModal,
-  logoUrl,
-  logoInput,
-  exchangeRate,
-  columns,
-  factureColumns,
-  factureItems,
-  totalGeneral,
-  clientOptions,
-  produitOptions,
-  getClientName,
-  getClientFullName,
-  getClientPhone,
-  getClientEmail,
-  getProduitName,
-  formatDate,
-  viewCommande,
-  triggerLogoUpload,
-  handleLogoUpload,
-  printFacture,
-  openAddModal,
-  addCommande,
-  editCommande,
-  updateCommande,
-  deleteCommande,
-  confirmDeleteCommande,
-  fetchCommandes,
-  resetNewCommande,
 });
 </script>
 
@@ -822,7 +729,6 @@ defineExpose({
   align-items: center;
 }
 
-/* Styles pour la facture */
 .facture-page {
   font-family: Arial, sans-serif;
   padding: 20px;
@@ -845,7 +751,6 @@ defineExpose({
   margin-top: 30px;
 }
 
-/* Styles d'impression */
 @media print {
   .print-button-section {
     display: none;

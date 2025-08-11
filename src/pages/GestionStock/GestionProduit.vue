@@ -81,7 +81,7 @@
             <q-item-section avatar>
               <q-icon name="inventory_2" />
             </q-item-section>
-            <q-item-section>Produit</q-item-section>
+            <q-item-section>Approvisionnement</q-item-section>
           </q-item>
           <q-item
             to="/Ch/categorie-form"
@@ -95,7 +95,7 @@
             <q-item-section avatar>
               <q-icon name="category" />
             </q-item-section>
-            <q-item-section>Catégorie</q-item-section>
+            <q-item-section>Produits</q-item-section>
           </q-item>
 
           <q-item

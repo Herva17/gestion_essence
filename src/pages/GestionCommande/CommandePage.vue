@@ -99,18 +99,18 @@
 
 <script setup>
 import { onMounted, computed } from "vue";
-import { useProduitStore } from "src/stores/ProduitStore";
+import { useCategorieStore } from "src/stores/ProduitStore";
 import { useMouvementStore } from "src/stores/MouvementStore";
 import { useClientStore } from "src/stores/ClientStore";
 import { useCommandeStore } from "src/stores/CommandeStore";
 
-const produitStore = useProduitStore();
+const produitStore = useCategorieStore();
 const mouvementStore = useMouvementStore();
 const clientStore = useClientStore();
 const commandeStore = useCommandeStore();
 
 onMounted(() => {
-  produitStore.fetchTotalProduits();
+ 
   mouvementStore.fetchTotalMouvements();
   // clientStore.fetchTotalClients();
   commandeStore.fetchTotalCommandes();

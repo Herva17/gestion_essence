@@ -1,108 +1,106 @@
 <template>
-  <div class="q-pa-md produit-form-bg">
-    <q-card class="q-pa-lg produit-form-card">
+  <div class="q-pa-md approvisionnement-form-bg">
+    <q-card class="q-pa-lg approvisionnement-form-card">
       <!-- Bandeau titre -->
-      <div class="produit-title-bar q-pa-md q-mb-md row items-center justify-between">
+      <div class="approvisionnement-title-bar q-pa-md q-mb-md row items-center justify-between">
         <div class="text-h5 text-white text-weight-bold">
-          <q-icon name="inventory_2" class="q-mr-sm" /> Gestion des Produits
+          <q-icon name="inventory_2" class="q-mr-sm" /> Gestion des Approvisionnements
         </div>
-        <!-- Icône notification -->
-        <q-btn
-          flat
-          round
-          dense
-          icon="notifications"
-          color="white"
-          @click="showNotif"
-          :class="{ 'bg-red-3': hasStockAlert }"
-        >
-          <q-badge v-if="hasStockAlert" color="red" floating rounded />
-        </q-btn>
+        <div class="text-white">
+          Connecté en tant que: {{ user.nom || user.id }}
+        </div>
       </div>
-      <!-- Fin bandeau titre -->
 
       <q-card-section>
         <div class="row items-center justify-between">
-          <div class="text-h5 text-primary text-weight-bold">Liste des Produits</div>
-          <q-btn color="primary" icon="add" label="Ajouter Produit" @click="showAddModal = true" />
+          <div class="text-h5 text-primary text-weight-bold">
+            Liste des Approvisionnements
+          </div>
+          <q-btn
+            color="primary"
+            icon="add"
+            label="Nouvel Approvisionnement"
+            @click="showAddModal = true"
+            :disable="loading"
+          />
         </div>
       </q-card-section>
+
       <q-separator />
+
       <q-card-section>
         <q-table
-          :rows="produits"
+          :rows="approvisionnements"
           :columns="columns"
-          row-key="id"
+          row-key="id_approvisionnement"
           flat
           bordered
-          :pagination="{ rowsPerPage: 5 }"
-          no-data-label="Aucun produit enregistré"
+          :loading="loading"
+          :pagination="{ rowsPerPage: 10 }"
+          no-data-label="Aucun approvisionnement enregistré"
         >
-          <!-- Quantité en rouge si < 80 -->
-          <template #body-cell-quantite="props">
+          <!-- Colonne Produit -->
+          <template #body-cell-produit="props">
             <q-td :props="props">
-              <span :style="{ color: props.row.quantite <= 10 ? 'red' : 'inherit', 'font-weight': props.row.quantite < 80 ? 'bold' : 'normal' }">
-                {{ props.row.quantite }}
-              </span>
+              {{ props.row.produit_nom || 'N/A' }} (ID: {{ props.row.id_produit }})
             </q-td>
           </template>
+
+          <!-- Colonne Fournisseur -->
+          <template #body-cell-fournisseur="props">
+            <q-td :props="props">
+              {{ props.row.nom_fournisseur || 'N/A' }}
+            </q-td>
+          </template>
+
+          <!-- Colonne Date -->
+          <template #body-cell-date="props">
+            <q-td :props="props">
+              {{ formatDate(props.row.date_approvisionnement) }}
+            </q-td>
+          </template>
+
+          <!-- Colonne Actions -->
           <template #body-cell-actions="props">
             <q-td align="center">
-              <q-btn dense flat round icon="edit" color="primary" @click="editProduit(props.row)" />
-              <q-btn dense flat round icon="delete" color="negative" @click="deleteProduit(props.row.id)" />
+              <q-btn
+                dense
+                flat
+                round
+                icon="edit"
+                color="primary"
+                @click="editApprovisionnement(props.row)"
+                :disable="loading"
+              />
+              <q-btn
+                dense
+                flat
+                round
+                icon="delete"
+                color="negative"
+                @click="confirmDelete(props.row.id_approvisionnement)"
+                :disable="loading"
+              />
             </q-td>
           </template>
         </q-table>
       </q-card-section>
 
       <!-- Modal d'ajout -->
-      <q-dialog v-model="showAddModal">
-        <q-card style="min-width:400px">
+      <q-dialog v-model="showAddModal" persistent>
+        <q-card style="min-width: 500px">
           <q-card-section>
-            <div class="text-h6">Ajouter un Produit</div>
+            <div class="text-h6">Nouvel Approvisionnement</div>
+            <div class="text-caption">Utilisateur: {{ user.nom || user.id }}</div>
           </q-card-section>
+
           <q-card-section>
             <q-form @submit.prevent="onSubmit" class="q-gutter-md">
-              <q-input
-                v-model="produit.nom"
-                label="Nom du produit"
-                outlined
-                dense
-                required
-                color="primary"
-              />
-              <q-input
-                v-model="produit.description"
-                label="Description"
-                outlined
-                dense
-                color="primary"
-              />
-              <q-input
-                v-model="produit.quantite"
-                label="Quantité"
-                type="number"
-                outlined
-                dense
-                color="primary"
-                min="0"
-                :input-style="quantiteInputStyle(produit.quantite)"
-              />
-              <q-input
-                v-model="produit.prix_unitaire"
-                label="Prix unitaire"
-                type="number"
-                outlined
-                dense
-                color="primary"
-                min="0"
-                step="0.01"
-              />
-              <!-- Sélecteur de catégorie -->
+              <!-- Sélecteur de produit -->
               <q-select
-                v-model="produit.id_categorie"
-                :options="categorieOptions"
-                label="Catégorie"
+                v-model="newApprovisionnement.id_produit"
+                :options="produitOptions"
+                label="Produit *"
                 option-value="id"
                 option-label="designation"
                 outlined
@@ -111,90 +109,154 @@
                 emit-value
                 map-options
                 :loading="categorieStore.loading"
-                :disable="categorieStore.loading"
-                required
+                :rules="[val => !!val || 'Champ obligatoire']"
               />
 
-              <div class="row justify-end">
-                <q-btn label="Enregistrer" color="primary" type="submit" icon="check" unelevated />
-                <q-btn flat label="Annuler" color="grey" class="q-ml-sm" v-close-popup />
+              <!-- Sélecteur de fournisseur -->
+              <q-select
+                v-model="newApprovisionnement.id_fournisseur"
+                :options="fournisseurOptions"
+                label="Fournisseur *"
+                option-value="id"
+                option-label="nom"
+                outlined
+                dense
+                color="primary"
+                emit-value
+                map-options
+                :loading="fournisseurStore.loading"
+                :rules="[val => !!val || 'Champ obligatoire']"
+              />
+
+              <q-input
+                v-model.number="newApprovisionnement.quantite"
+                label="Quantité *"
+                type="number"
+                outlined
+                dense
+                color="primary"
+                min="1"
+                :rules="[
+                  val => val > 0 || 'Doit être positif',
+                  val => !!val || 'Champ obligatoire'
+                ]"
+              />
+
+              <q-input
+                v-model.number="newApprovisionnement.prix_unitaire"
+                label="Prix unitaire *"
+                type="number"
+                outlined
+                dense
+                color="primary"
+                min="0"
+                step="0.01"
+                :rules="[
+                  val => val >= 0 || 'Doit être positif',
+                  val => !!val || 'Champ obligatoire'
+                ]"
+              />
+
+              <div class="row justify-end q-mt-md">
+                <q-btn
+                  label="Enregistrer"
+                  color="primary"
+                  type="submit"
+                  icon="check"
+                  :loading="loading"
+                  unelevated
+                />
+                <q-btn
+                  flat
+                  label="Annuler"
+                  color="grey"
+                  class="q-ml-sm"
+                  v-close-popup
+                  :disable="loading"
+                />
               </div>
             </q-form>
           </q-card-section>
         </q-card>
       </q-dialog>
+
       <!-- Modal de modification -->
-      <q-dialog v-model="showEditModal">
-        <q-card style="min-width:400px">
+      <q-dialog v-model="showEditModal" persistent>
+        <q-card style="min-width: 500px">
           <q-card-section>
-            <div class="text-h6">Modifier le Produit</div>
+            <div class="text-h6">Modifier l'Approvisionnement #{{ editApprovisionnementData.id_approvisionnement }}</div>
           </q-card-section>
+
           <q-card-section>
             <q-form @submit.prevent="onUpdate" class="q-gutter-md">
               <q-input
-                v-model="editProduitData.nom"
-                label="Nom du produit"
+                v-model="editApprovisionnementData.produit_nom"
+                label="Produit"
                 outlined
                 dense
-                required
-                color="primary"
+                readonly
               />
-              <q-input
-                v-model="editProduitData.description"
-                label="Description"
+
+              <q-select
+                v-model="editApprovisionnementData.id_fournisseur"
+                :options="fournisseurOptions"
+                label="Fournisseur *"
+                option-value="id"
+                option-label="nom"
                 outlined
                 dense
                 color="primary"
+                emit-value
+                map-options
+                :rules="[val => !!val || 'Champ obligatoire']"
               />
+
               <q-input
-                v-model="editProduitData.quantite"
-                label="Quantité"
+                v-model.number="editApprovisionnementData.quantite"
+                label="Quantité *"
                 type="number"
                 outlined
                 dense
                 color="primary"
-                min="0"
-                :input-style="quantiteInputStyle(editProduitData.quantite)"
+                min="1"
+                :rules="[
+                  val => val > 0 || 'Doit être positif',
+                  val => !!val || 'Champ obligatoire'
+                ]"
               />
+
               <q-input
-                v-model="editProduitData.prix_unitaire"
-                label="Prix unitaire"
+                v-model.number="editApprovisionnementData.prix_unitaire"
+                label="Prix unitaire *"
                 type="number"
                 outlined
                 dense
                 color="primary"
                 min="0"
                 step="0.01"
-              />
-              <!-- Sélecteur de catégorie pour modification -->
-              <q-select
-                v-model="editProduitData.id_categorie"
-                :options="categorieOptions"
-                label="Catégorie"
-                option-value="id"
-                option-label="designation"
-                outlined
-                dense
-                color="primary"
-                emit-value
-                map-options
-                :loading="categorieStore.loading"
-                :disable="categorieStore.loading"
-                required
-              />
-              <q-input
-                v-model="editProduitData.id_User"
-                label="ID Utilisateur"
-                type="number"
-                outlined
-                dense
-                color="primary"
-                min="0"
+                :rules="[
+                  val => val >= 0 || 'Doit être positif',
+                  val => !!val || 'Champ obligatoire'
+                ]"
               />
 
-              <div class="row justify-end">
-                <q-btn label="Mettre à jour" color="primary" type="submit" icon="save" unelevated />
-                <q-btn flat label="Annuler" color="grey" class="q-ml-sm" v-close-popup />
+              <div class="row justify-end q-mt-md">
+                <q-btn
+                  label="Mettre à jour"
+                  color="primary"
+                  type="submit"
+                  icon="save"
+                  :loading="loading"
+                  unelevated
+                />
+                <q-btn
+                  flat
+                  label="Annuler"
+                  color="grey"
+                  class="q-ml-sm"
+                  v-close-popup
+                  :disable="loading"
+                />
               </div>
             </q-form>
           </q-card-section>
@@ -207,220 +269,312 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useQuasar } from 'quasar';
-import { useProduitStore } from 'src/stores/ProduitStore';
-import { useCategorieStore } from 'src/stores/CategorieStore';
+import { useApprovisionnementStore } from 'src/stores/ApprovisionnementStore';
+import { useCategorieStore } from 'src/stores/ProduitStore';
+import { useFournisseurStore } from 'src/stores/FournisseurStore';
 
 const $q = useQuasar();
-const produitStore = useProduitStore();
-const categorieStore = useCategorieStore();
 
+// Stores
+const approvisionnementStore = useApprovisionnementStore();
+const categorieStore = useCategorieStore();
+const fournisseurStore = useFournisseurStore();
+
+// Utilisateur connecté
+const user = ref(JSON.parse(localStorage.getItem('user')) || { id: 1, nom: 'Administrateur' });
+
+// États
 const showAddModal = ref(false);
 const showEditModal = ref(false);
+const loading = ref(false);
 
-// Récupérer l'utilisateur du localStorage
-const user = ref(null);
-onMounted(() => {
-  produitStore.fetchProduits();
-  categorieStore.fetchCategories();
-  const userData = localStorage.getItem('user');
-  if (userData) {
-    user.value = JSON.parse(userData);
-    produit.value.id_User = user.value.id;
-  }
+// Formulaires
+const newApprovisionnement = ref({
+  id_produit: null,
+  id_fournisseur: null,
+  quantite: 1,
+  prix_unitaire: 0,
+  id_User: user.value.id
 });
 
-const produit = ref({
-  nom: '',
-  description: '',
-  quantite: '',
-  prix_unitaire: '',
-  id_categorie: '',
-  id_User: '', // sera pré-rempli si user existe
-});
-const editProduitData = ref({
-  id: null,
-  nom: '',
-  description: '',
-  quantite: '',
-  prix_unitaire: '',
-  id_categorie: '',
-  id_User: '',
+const editApprovisionnementData = ref({
+  id_approvisionnement: null,
+  id_produit: null,
+  produit_nom: '',
+  id_fournisseur: null,
+  quantite: 1,
+  prix_unitaire: 0
 });
 
-// Utilise les produits du store
-const produits = computed(() => produitStore.produits);
+// Options pour les selects
+const produitOptions = computed(() => {
+  return (categorieStore.categories || []).map(p => ({
+    id: p.id,
+    designation: p.designation,
+    description: p.description
+  }));
+});
 
-// Liste des catégories pour le select
-const categorieOptions = computed(() => categorieStore.categories);
+const fournisseurOptions = computed(() => {
+  return (fournisseurStore.fournisseurs || []).map(f => ({
+    id: f.id,
+    nom: f.nom,
+    telephone: f.telephone
+  }));
+});
 
+// Données à afficher
+const approvisionnements = computed(() => {
+  return approvisionnementStore.approvisionnements || [];
+});
+
+// Colonnes du tableau
 const columns = [
-  { name: 'nom', label: 'Nom', field: 'nom', align: 'left' },
-  { name: 'description', label: 'Description', field: 'description', align: 'left' },
-    { 
-    name: 'categorie', 
-    label: 'Catégorie', 
-    field: row => getCategorieName(row.id_categorie),
-    align: 'left'
-  },
-  { 
-    name: 'quantite', 
-    label: 'Quantité en litre', 
-    field: 'quantite', 
-    align: 'right', 
-     format: val => `${val ?? 0} Litres` // Utilisation de nullish coalescing
-  },
-  { 
-    name: 'prix_unitaire', 
-    label: 'Prix unitaire', 
-    field: 'prix_unitaire', 
-    align: 'right', 
-    format: (val) => `${val ?? ''} $` 
-  },
-  { 
-    name: 'date_creation',
-    label: 'Date Création', 
-    field: 'date_creation', 
+  { name: 'id', label: 'ID', field: 'id_approvisionnement', align: 'left' },
+  { name: 'produit', label: 'Produit', field: 'produit_nom', align: 'left' },
+  { name: 'fournisseur', label: 'Fournisseur', field: 'nom_fournisseur', align: 'left' },
+  { name: 'quantite', label: 'Quantité', field: 'quantite', align: 'right' },
+  {
+    name: 'prix',
+    label: 'Prix Unitaire',
+    field: 'prix_unitaire',
     align: 'right',
-    format: (val) => val ? new Date(val).toLocaleDateString() : '' // Formatage de date optionnel
+    format: val => `${parseFloat(val).toFixed(2)} $`
   },
-  { 
-    name: 'actions', 
-    label: 'Actions', 
-    align: 'center', 
-    sortable: false 
-  }
+  {
+    name: 'date',
+    label: 'Date',
+    field: 'date_approvisionnement',
+    align: 'right',
+    format: val => formatDate(val)
+  },
+  { name: 'actions', label: 'Actions', align: 'center' }
 ];
 
-function getCategorieName(id) {
-  if (!id || !categorieStore.categories) return "Non catégorisé";
-  const categorie = categorieStore.categories.find(c => c.id === id);
-  return categorie?.designation || "Non catégorisé";
-}
-// Notification stock insuffisant
-const produitsAlert = computed(() =>
-  produits.value.filter(p => Number(p.quantite) <= 10)
-);
-const hasStockAlert = computed(() => produitsAlert.value.length > 0);
-
-function showNotif() {
-  if (hasStockAlert.value) {
-    $q.notify({
-      type: "negative",
-      message:
-        "Stock insuffisant pour : " +
-        produitsAlert.value.map(p => p.nom).join(", "),
-      icon: "warning",
-      position: "top-right"
-    });
-  } else {
-    $q.notify({
-      type: "positive",
-      message: "Tous les stocks sont suffisants.",
-      icon: "check_circle",
-      position: "top-right"
-    });
-  }
+// Méthodes
+function formatDate(dateString) {
+  if (!dateString) return 'N/A';
+  const date = new Date(dateString);
+  return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
 }
 
-// Enregistrement via l'API avec FormData
 async function onSubmit() {
-  if (
-    !produit.value.nom ||
-    !produit.value.quantite ||
-    !produit.value.prix_unitaire ||
-    !produit.value.id_categorie ||
-    !produit.value.id_User
-  ) {
-    $q.notify({ type: 'negative', message: "Tous les champs obligatoires doivent être remplis !" });
-    return;
-  }
+  loading.value = true;
   try {
-    // Debug : voir ce qui est envoyé
-    console.log('Produit envoyé:', {
-      nom: produit.value.nom,
-      description: produit.value.description,
-      quantite: produit.value.quantite,
-      prix_unitaire: produit.value.prix_unitaire,
-      id_categorie: produit.value.id_categorie,
-      id_User: produit.value.id_User
-    });
-    const res = await produitStore.saveProduit({
-      nom: produit.value.nom,
-      description: produit.value.description,
-      quantite: produit.value.quantite,
-      prix_unitaire: produit.value.prix_unitaire,
-      id_categorie: produit.value.id_categorie,
-      id_User: produit.value.id_User
-    });
-    // Debug : voir la réponse de l'API
-    console.log('Réponse API:', res);
+    const payload = {
+      id_User: Number(user.value.id), // Maintenant avec U majuscule
+      id_produit: Number(newApprovisionnement.value.id_produit),
+      id_fournisseur: Number(newApprovisionnement.value.id_fournisseur),
+      quantite: Number(newApprovisionnement.value.quantite),
+      prix_unitaire: parseFloat(newApprovisionnement.value.prix_unitaire)
+    };
 
-    if (
-      !res.response ||
-      !res.response.succes ||
-      !res.response.data ||
-      res.response.data.length === 0
-    ) {
-      $q.notify({ type: 'negative', message: "Erreur lors de l'enregistrement (API) !" });
-      return;
+    console.log('Données préparées:', payload);
+
+    const response = await approvisionnementStore.saveApprovisionnement(payload);
+
+    $q.notify({
+      type: 'positive',
+      message: response.message || 'Approvisionnement enregistré',
+      timeout: 3000
+    });
+
+    showAddModal.value = false;
+    resetForm();
+
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: error.message,
+      timeout: 5000
+    });
+  } finally {
+    loading.value = false;
+  }
+}
+async function onUpdate() {
+  loading.value = true;
+  try {
+    // Validation renforcée
+    const requiredFields = {
+      'Fournisseur': editApprovisionnementData.value.id_fournisseur,
+      'Quantité': editApprovisionnementData.value.quantite,
+      'Prix unitaire': editApprovisionnementData.value.prix_unitaire
+    };
+
+    Object.entries(requiredFields).forEach(([field, value]) => {
+      if (!value && value !== 0) throw new Error(`${field} est requis`);
+      if (field === 'Quantité' && value <= 0) throw new Error("La quantité doit être positive");
+      if (field === 'Prix unitaire' && value < 0) throw new Error("Le prix doit être positif");
+    });
+
+    // Préparation FormData pour l'API
+    const formData = new FormData();
+    formData.append('id_approvisionnement', editApprovisionnementData.value.id_approvisionnement);
+    formData.append('id_User', user.value.id);
+    formData.append('id_produit', editApprovisionnementData.value.id_produit);
+    formData.append('id_fournisseur', editApprovisionnementData.value.id_fournisseur);
+    formData.append('quantite', editApprovisionnementData.value.quantite);
+    formData.append('prix_unitaire', editApprovisionnementData.value.prix_unitaire);
+
+    // Debug: afficher le contenu de FormData
+    for (let [key, value] of formData.entries()) {
+      console.log(`${key}: ${value}`);
     }
 
-    $q.notify({ type: 'positive', message: 'Produit enregistré !' });
-    produit.value = { nom: '', description: '', quantite: '', prix_unitaire: '', id_categorie: '', id_User: user.value ? user.value.id : '' };
-    showAddModal.value = false;
-  } catch (e) {
-    $q.notify({ type: 'negative', message: "Erreur lors de l'enregistrement !" });
+    // Envoi à l'API
+    const response = await approvisionnementStore.updateApprovisionnement(formData);
+
+    if (!response?.succes) {
+      throw new Error(response?.message || "Réponse invalide du serveur");
+    }
+
+    // Feedback utilisateur
+    $q.notify({
+      type: 'positive',
+      message: response.message || "Modification enregistrée avec succès",
+      timeout: 3000,
+      position: 'top'
+    });
+
+    // Fermeture du modal et rafraîchissement
+    showEditModal.value = false;
+    await approvisionnementStore.fetchApprovisionnements();
+
+  } catch (error) {
+    console.error("Erreur détaillée:", {
+      message: error.message,
+      stack: error.stack,
+      response: error.response?.data
+    });
+
+    $q.notify({
+      type: 'negative',
+      message: error.message || "Erreur technique lors de la modification",
+      timeout: 5000,
+      position: 'top',
+      actions: [{ icon: 'close', color: 'white' }]
+    });
+  } finally {
+    loading.value = false;
   }
 }
+async function confirmDelete(id) {
+  $q.dialog({
+    title: 'Confirmer la suppression',
+    message: 'Êtes-vous sûr de vouloir supprimer cet approvisionnement ?',
+    cancel: true,
+    persistent: true,
+    ok: {
+      label: 'Supprimer',
+      color: 'negative',
+      loading: loading.value // Ajout du state de loading
+    }
+  }).onOk(async () => {
+    loading.value = true;
+    try {
+      const result = await approvisionnementStore.deleteApprovisionnement(id);
+      
+      $q.notify({
+        type: 'positive',
+        message: result.message || 'Suppression réussie',
+        timeout: 3000,
+        position: 'top'
+      });
 
-// Pour la suppression, il faudrait appeler une action du store si elle existe
-function deleteProduit(id) {
-  // Idéalement, créez une méthode produitStore.deleteProduit(id) qui fait l'appel API
-  produitStore.produits = produitStore.produits.filter(p => p.id !== id);
-  $q.notify({ type: 'negative', message: 'Produit supprimé.' });
+      // Rechargement des données
+      await approvisionnementStore.fetchApprovisionnements();
+
+    } catch (error) {
+      console.error('Erreur complète:', error);
+      $q.notify({
+        type: 'negative',
+        message: error.message || 'Erreur inconnue lors de la suppression',
+        timeout: 5000,
+        position: 'top',
+        actions: [{ icon: 'close', color: 'white' }]
+      });
+    } finally {
+      loading.value = false;
+    }
+  });
 }
 
-function editProduit(row) {
-  editProduitData.value = { ...row };
+function editApprovisionnement(item) {
+  editApprovisionnementData.value = {
+    id_approvisionnement: item.id_approvisionnement,
+    id_produit: item.id_produit,
+    produit_nom: item.produit_nom,
+    id_fournisseur: item.id_fournisseur,
+    quantite: item.quantite,
+    prix_unitaire: item.prix_unitaire
+  };
   showEditModal.value = true;
 }
 
-function onUpdate() {
-  // Idéalement, créez une méthode produitStore.updateProduit(editProduitData.value) qui fait l'appel API
-  const idx = produitStore.produits.findIndex(p => p.id === editProduitData.value.id);
-  if (idx !== -1) {
-    produitStore.produits[idx] = { ...editProduitData.value };
-    $q.notify({ type: 'positive', message: 'Produit modifié !' });
-  }
-  showEditModal.value = false;
+function resetForm() {
+  newApprovisionnement.value = {
+    id_produit: null,
+    id_fournisseur: null,
+    quantite: 1,
+    prix_unitaire: 0,
+    id_User: user.value.id
+  };
 }
 
-function quantiteInputStyle(val) {
-  return Number(val) <= 10
-    ? { color: 'red', fontWeight: 'bold' }
-    : {};
-}
+// Initialisation
+onMounted(async () => {
+  loading.value = true;
+  try {
+    await Promise.all([
+      approvisionnementStore.fetchApprovisionnements(),
+      categorieStore.fetchCategories(),
+      fournisseurStore.fetchFournisseurs()
+    ]);
+  } catch (error) {
+    console.error("Erreur:", error);
+    $q.notify({
+      type: 'negative',
+      message: "Erreur lors du chargement des données",
+      timeout: 5000
+    });
+  } finally {
+    loading.value = false;
+  }
+});
 </script>
+
 <style scoped>
-.produit-form-bg {
+.approvisionnement-form-bg {
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ed 100%);
   min-height: 100vh;
-  background: linear-gradient(135deg, #f0f4f8 0%, #e0e7ef 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
-.produit-form-card {
-  max-width: 100%;
-  width: 100%;
-  margin: auto;
-  border-radius: 18px;
-  box-shadow: 0 8px 32px 0 rgba(0,0,0,0.10), 0 1.5px 4px 0 rgba(0,0,0,0.08);
+
+.approvisionnement-form-card {
+  max-width: 1200px;
+  margin: 0 auto;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
-.produit-title-bar {
-  background: linear-gradient(90deg, #2563eb 0%, #60a5fa 100%);
-   border-radius: 14px 14px 0 0;
-  text-align: left;
-  display: flex;
-  align-items: center;
+
+.approvisionnement-title-bar {
+  background: linear-gradient(90deg, #1976d2 0%, #2196f3 100%);
+  border-radius: 10px 10px 0 0;
+}
+
+.q-table {
+  font-size: 14px;
+}
+
+.q-table th {
+  font-weight: 600;
+}
+
+.q-table td {
+  padding: 8px 16px;
+}
+
+.q-table__top {
+  padding: 12px 16px;
 }
 </style>

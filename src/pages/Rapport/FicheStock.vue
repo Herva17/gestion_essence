@@ -112,19 +112,19 @@
             <tr class="bg-primary text-white">
               <!-- Sous-colonnes Entrées -->
               <th class="text-center">Date</th>
-              <th class="text-right">Quantité</th>
+              <th class="text-right">Quantité(MC)</th>
               <th class="text-right">P.U ($)</th>
               <th class="text-right">P.T ($)</th>
 
               <!-- Sous-colonnes Sorties -->
               <th class="text-center">Date</th>
-              <th class="text-right">Quantité</th>
+              <th class="text-right">Quantité(MC)</th>
               <th class="text-right">P.U ($)</th>
               <th class="text-right">P.T ($)</th>
 
               <!-- Sous-colonnes Stock -->
               <th class="text-center">Date</th>
-              <th class="text-right">Quantité</th>
+              <th class="text-right">Quantité(MC)</th>
               <th class="text-right">P.U ($)</th>
               <th class="text-right">P.T ($)</th>
             </tr>
@@ -173,12 +173,12 @@
       </div>
 
       <!-- Résumé -->
-      <div class="row q-mt-md print-summary">
+      <!-- <div class="row q-mt-md print-summary">
         <div class="col-md-4 col-sm-12 q-pa-sm">
           <q-card class="bg-blue-1">
             <q-card-section>
               <div class="text-h6 text-center">Total Entrées</div>
-              <div class="text-h4 text-center text-blue">{{ totals.totalEntrees }} L</div>
+              <div class="text-h4 text-center text-blue">{{ totals.totalEntrees }} MC</div>
             </q-card-section>
           </q-card>
         </div>
@@ -186,7 +186,7 @@
           <q-card class="bg-green-1">
             <q-card-section>
               <div class="text-h6 text-center">Total Sorties</div>
-              <div class="text-h4 text-center text-green">{{ totals.totalSorties }} L</div>
+              <div class="text-h4 text-center text-green">{{ totals.totalSorties }} MC</div>
             </q-card-section>
           </q-card>
         </div>
@@ -194,11 +194,11 @@
           <q-card class="bg-orange-1">
             <q-card-section>
               <div class="text-h6 text-center">Stock Actuel</div>
-              <div class="text-h4 text-center text-orange">{{ totals.totalStock }} L</div>
+              <div class="text-h4 text-center text-orange">{{ totals.totalStock }} MC</div>
             </q-card-section>
           </q-card>
         </div>
-      </div>
+      </div> -->
     </div>
 
     <!-- Actions (non imprimables) -->
