@@ -3,207 +3,191 @@ require_once("./Config.php");
 
 class Produit
 {
-public static function enregistrer($nom, $description, $quantite, $prix_unitaire, $id_categorie, $id_gerant)
-{
-    $data = get_connection();
-    $date_creation = date("Y-m-d H:i:s");
-
-    // 1. Enregistrement du produit
-    $query = $data->prepare("INSERT INTO produits (nom, description, quantite, prix_unitaire, id_categorie, id_User, date_creation) 
-                            VALUES (:nom, :description, :quantite, :prix_unitaire, :id_categorie, :id_User, :date_creation)");
-
-    $success = $query->execute([
-        ':nom' => $nom,
-        ':description' => $description,
-        ':quantite' => $quantite,
-        ':prix_unitaire' => $prix_unitaire,
-        ':id_categorie' => $id_categorie,
-        ':id_User' => $id_gerant,
-        ':date_creation' => $date_creation
-    ]);
-
-    if ($success) {
-        // 2. Récupérer le dernier produit inséré
-        $produit = self::afficher_dernier_enreg();
-        $designation = $nom; // ou $produit[0]['nom'] si tu veux être sûr
-
-        // 3. Enregistrement du mouvement (sans id_approvisionnement)
-        $type = "entrée";
-        $date_mouvement = $date_creation;
-        $query_mvt = $data->prepare("INSERT INTO mouvements (designation,Quantite,Prix_Unitaire, type, date_mouvement) 
-                                     VALUES (:designation, :Quantite, :Prix_Unitaire, :type, :date_mouvement)");
-        $query_mvt->execute([
-            ':designation' => $designation,
-            ':Quantite' => $quantite,
-            ':Prix_Unitaire' => $prix_unitaire,
-            ':type' => $type,
-            ':date_mouvement' => $date_mouvement
-        ]);
-
-        return [
-            "Reussite" => "Produit enregistré avec succès",
-            "Dernier_Enregistrement" => $produit
-        ];
-    } else {
-        return [
-            "Message" => "Échec d'enregistrement du produit"
-        ];
-    }
-}
-
-    public static function afficher_dernier_enreg()
+    /**
+     * Enregistre un nouveau produit
+     * @param string $designation
+     * @param string $description
+     * @param string|null $date_creation
+     * @return array
+     */
+    public static function enregistrer($designation, $description, $date_creation = null)
     {
         $data = get_connection();
-        $donnees = $data->query("SELECT * FROM produits ORDER BY id DESC LIMIT 1")->fetchAll();
-        if ($donnees && count($donnees) > 0) {
-            return $donnees;
-        } else {
-            return [];
+        
+        if ($date_creation === null) {
+            $date_creation = date("Y-m-d H:i:s");
+        }
+
+        try {
+            $query = $data->prepare("INSERT INTO produit 
+                                   (designation, description, date_creation) 
+                                   VALUES (:designation, :description, :date_creation)");
+
+            $success = $query->execute([
+                ':designation' => htmlspecialchars(trim($designation)),
+                ':description' => htmlspecialchars(trim($description)),
+                ':date_creation' => $date_creation
+            ]);
+
+            if ($success) {
+                $dernier_id = $data->lastInsertId();
+                return [
+                    "success" => true,
+                    "message" => "Produit enregistré avec succès",
+                    "id" => $dernier_id
+                ];
+            } else {
+                return [
+                    "success" => false,
+                    "message" => "Échec d'enregistrement du produit"
+                ];
+            }
+        } catch (PDOException $e) {
+            return [
+                "success" => false,
+                "message" => "Erreur: " . $e->getMessage()
+            ];
         }
     }
 
+    /**
+     * Met à jour un produit existant
+     * @param int $id
+     * @param string $designation
+     * @param string $description
+     * @return array
+     */
+    public static function update($id, $designation, $description)
+    {
+        $data = get_connection();
+        
+        try {
+            $query = $data->prepare("UPDATE produit 
+                                   SET designation = :designation,
+                                       description = :description
+                                   WHERE id = :id");
+
+            $success = $query->execute([
+                ':id' => $id,
+                ':designation' => htmlspecialchars(trim($designation)),
+                ':description' => htmlspecialchars(trim($description))
+            ]);
+
+            if ($success) {
+                return [
+                    "success" => true,
+                    "message" => "Produit mis à jour avec succès"
+                ];
+            } else {
+                return [
+                    "success" => false,
+                    "message" => "Échec de la mise à jour"
+                ];
+            }
+        } catch (PDOException $e) {
+            return [
+                "success" => false,
+                "message" => "Erreur: " . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Récupère tous les produits
+     * @return array
+     */
     public static function select_all()
     {
         $data = get_connection();
-        $donnees = $data->query("SELECT * FROM produits ORDER BY nom")->fetchAll();
-        if ($donnees && count($donnees) > 0) {
-            return $donnees;
-        } else {
-            return ["Message" => "Aucun produit disponible"];
-        }
+        $donnees = $data->query("SELECT * FROM produit ORDER BY date_creation DESC")->fetchAll(PDO::FETCH_ASSOC);
+        return $donnees ?: [];
     }
 
-    public static function update($id, $nom, $description, $quantite, $prix_unitaire, $id_categorie, $id_approvisionnement, $id_gerant)
-    {
-        $data = get_connection();
-        $query = $data->prepare("UPDATE produits 
-                                SET nom = :nom, 
-                                    description = :description,
-                                    quantite = :quantite,
-                                    prix_unitaire = :prix_unitaire,
-                                    id_categorie = :id_categorie,
-                                    id_approvisionnement = :id_approvisionnement,
-                                    id_gerant = :id_gerant
-                                WHERE id = :id");
-
-        $success = $query->execute([
-            ':id' => $id,
-            ':nom' => $nom,
-            ':description' => $description,
-            ':quantite' => $quantite,
-            ':prix_unitaire' => $prix_unitaire,
-            ':id_categorie' => $id_categorie,
-            ':id_approvisionnement' => $id_approvisionnement,
-            ':id_gerant' => $id_gerant
-        ]);
-
-        if ($success) {
-            return ["Reussite" => "Produit modifié avec succès"];
-        } else {
-            return ["Message" => "Échec de modification du produit"];
-        }
-    }
-
+    /**
+     * Récupère un produit spécifique
+     * @param int $id
+     * @return array|null
+     */
     public static function select_one($id)
     {
         $data = get_connection();
-        $query = $data->prepare("SELECT * FROM produits WHERE id = :id");
+        $query = $data->prepare("SELECT * FROM produit WHERE id = :id");
         $query->execute([':id' => $id]);
-        $donnees = $query->fetchAll();
-        if ($donnees && count($donnees) > 0) {
-            return $donnees;
-        } else {
-            return ["Message" => "Aucun produit trouvé avec cet ID"];
-        }
+        return $query->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
-    public static function compterProduits()
-    {
-        $data = get_connection();
-        $donnees = $data->query("SELECT COUNT(id) as total FROM produits")->fetchAll();
-        if ($donnees && count($donnees) > 0) {
-            return $donnees;
-        } else {
-            return ["Message" => "Aucune donnée disponible"];
-        }
-    }
-
+    /**
+     * Supprime un produit
+     * @param int $id
+     * @return array
+     */
     public static function delete($id)
     {
         $data = get_connection();
-        $query = $data->prepare("DELETE FROM produits WHERE id = :id");
-        $success = $query->execute([':id' => $id]);
-        if ($success) {
-            return ["Reussite" => "Produit supprimé avec succès"];
-        } else {
-            return ["Message" => "Échec de suppression du produit"];
+        
+        try {
+            $query = $data->prepare("DELETE FROM produit WHERE id = :id");
+            $success = $query->execute([':id' => $id]);
+
+            if ($success) {
+                return [
+                    "success" => true,
+                    "message" => "Produit supprimé avec succès"
+                ];
+            } else {
+                return [
+                    "success" => false,
+                    "message" => "Échec de suppression"
+                ];
+            }
+        } catch (PDOException $e) {
+            return [
+                "success" => false,
+                "message" => "Erreur: " . $e->getMessage()
+            ];
         }
     }
 
+    /**
+     * Compte le nombre total de produits
+     * @return int
+     */
+    public static function count()
+    {
+        $data = get_connection();
+        $result = $data->query("SELECT COUNT(id) as total FROM produit")->fetch(PDO::FETCH_ASSOC);
+        return (int)$result['total'];
+    }
+
+    /**
+     * Recherche des produits
+     * @param string $search_term
+     * @return array
+     */
     public static function search($search_term)
     {
         $data = get_connection();
-        $query = $data->prepare("SELECT * FROM produits 
-                                WHERE nom LIKE :search OR description LIKE :search");
+        $query = $data->prepare("SELECT * FROM produit
+                               WHERE designation LIKE :search 
+                               OR description LIKE :search
+                               ORDER BY date_creation DESC");
         $query->execute([':search' => "%$search_term%"]);
-        $results = $query->fetchAll();
-
-        if ($results && count($results) > 0) {
-            return $results;
-        } else {
-            return ["Message" => "Aucun produit trouvé pour cette recherche"];
-        }
+        return $query->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    public static function produits_par_categorie($id_categorie)
+    /**
+     * Récupère les produits récents
+     * @param int $limit
+     * @return array
+     */
+    public static function get_recent($limit = 5)
     {
         $data = get_connection();
-        $query = $data->prepare("SELECT * FROM produits WHERE id_categorie = :id_categorie");
-        $query->execute([':id_categorie' => $id_categorie]);
-        $donnees = $query->fetchAll();
-        if ($donnees && count($donnees) > 0) {
-            return $donnees;
-        } else {
-            return ["Message" => "Aucun produit trouvé dans cette catégorie"];
-        }
+        $query = $data->prepare("SELECT * FROM produit 
+                               ORDER BY date_creation DESC 
+                               LIMIT :limit");
+        $query->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
+        $query->execute();
+        return $query->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
-// rapports    
-
-public static function select_fiche_stock()
-{
-    $pdo = get_connection();
-
-    $sql = "
-        SELECT 
-    p.nom AS produit,
-    (p.quantite + COALESCE(SUM(c.quantite), 0)) AS entrees,
-    COALESCE(SUM(c.quantite), 0) AS sorties,
-    p.quantite AS stock_actuel,
-
-    p.prix_unitaire AS prix_usd,
-    (p.prix_unitaire * 3000) AS prix_fc,
-
-    (p.quantite * p.prix_unitaire) AS total_usd,
-    (p.quantite * p.prix_unitaire * 3000) AS total_fc,
-
-    p.date_creation,
-    MAX(c.date_commande) AS derniere_sortie
-
-FROM 
-    produits p
-LEFT JOIN 
-    commandes c ON p.id = c.id_produit
-GROUP BY 
-    p.id, p.nom, p.quantite, p.prix_unitaire, p.date_creation
-ORDER BY 
-    p.nom;
-
-    ";
-
-    $stmt = $pdo->query($sql);
-    $resultats = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    return $resultats ?: ["Message" => "Aucune vente enregistrée pour aujourd’hui"];
-}
-
 }

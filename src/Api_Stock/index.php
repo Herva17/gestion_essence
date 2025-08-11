@@ -26,6 +26,12 @@ if (
         case 'client':
             require_once("Routes/client.php");
             exit;
+            case 'fournisseur':
+            require_once("Routes/foournisseur.php");
+            exit;
+             case 'approvisionnement':
+            require_once("Routes/approvisionnement.php");
+            exit;
         case 'mouvement':
             require_once("Routes/Mouvement.php");
             exit;

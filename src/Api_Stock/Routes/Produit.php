@@ -1,60 +1,74 @@
 <?php
-header('Content-Type: Application/json');
+header('Content-Type: application/json');
 require_once("./Controlleurs/Produit.php");
-$data = array();
-$url = explode('/', $_SERVER['REQUEST_URI']);
-//print_r($url);
-$url_path1 = $url[2];
-$url_path2 = $url[3];
 
-if ($url_path1 == "produit") {
-    // GET requests
-   if ($_SERVER["REQUEST_METHOD"] == "GET") {
-    if ($url_path2 == "select_all") {
-        $data["response"] = selectionner_produits();
-        echo json_encode($data);
-        exit;
-    } elseif ($url_path2 == "compter") {
-        $data["response"] = compter_produits();
-        echo json_encode($data);
-        exit;
-    } elseif ($url_path2 == "rechercher") {
-        $data["response"] = rechercher_produits();
-        echo json_encode($data);
-        exit;
-    } elseif ($url_path2 == "par_categorie") {
-        $data["response"] = produits_par_categorie();
-        echo json_encode($data);
-        exit;
-    } elseif ($url_path2 == "fiche_stock") {
-        $data["response"] = selectionner_fiche_stock();
-        echo json_encode($data);
-        exit;
-    }
-}
+// Nettoyer tout buffer de sortie existant
+ob_clean();
 
-    // POST requests
-    elseif ($_SERVER["REQUEST_METHOD"] == "POST") {
-        if ($url_path2 == "select_one") {
-            $data["response"] = selectionner_un_produit();
-            echo json_encode($data);
-            exit;
-        } elseif ($url_path2 == "enregistrer") {
-            $data["response"] = enregistrer_produit();
-            echo json_encode($data);
-            exit;
-        } elseif ($url_path2 == "modifier") {
-            $data["response"] = modifier_produit();
-            echo json_encode($data);
-            exit;
-        } elseif ($url_path2 == "supprimer") {
-            $data["response"] = supprimer_produit();
-            echo json_encode($data);
+$url = explode('/', trim($_SERVER['REQUEST_URI'], '/'));
+$url_path1 = $url[1] ?? null; // "produit"
+$url_path2 = $url[2] ?? '';   // action
+
+if ($url_path1 === "produit") {
+    try {
+        // GET requests
+        if ($_SERVER["REQUEST_METHOD"] === "GET") {
+            switch ($url_path2) {
+                case "select_all":
+                    selectionner_produits();
+                    break;
+                case "compter":
+                    compter_produits();
+                    break;
+                case "rechercher":
+                    rechercher_produits();
+                    break;
+                default:
+                    http_response_code(404);
+                    echo json_encode([
+                        "success" => false,
+                        "message" => "Endpoint GET non reconnu"
+                    ]);
+            }
             exit;
         }
+        // POST requests
+        elseif ($_SERVER["REQUEST_METHOD"] === "POST") {
+            switch ($url_path2) {
+                case "select_one":
+                    selectionner_un_produit();
+                    break;
+                case "enregistrer":
+                    enregistrer_produit();
+                    break;
+                case "modifier":
+                    modifier_produit();
+                    break;
+                case "supprimer":
+                    supprimer_produit();
+                    break;
+                default:
+                    http_response_code(404);
+                    echo json_encode([
+                        "success" => false,
+                        "message" => "Endpoint POST non reconnu"
+                    ]);
+            }
+            exit;
+        }
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode([
+            "success" => false,
+            "message" => "Erreur serveur: " . $e->getMessage()
+        ]);
+        exit;
     }
 }
 
 // Si aucune route ne correspond
-$data["response"] = ["status" => "error", "message" => "Endpoint non reconnu"];
-echo json_encode($data);
+http_response_code(404);
+echo json_encode([
+    "success" => false,
+    "message" => "Endpoint non reconnu"
+]);
