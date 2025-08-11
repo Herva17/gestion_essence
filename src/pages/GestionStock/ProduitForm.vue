@@ -11,6 +11,29 @@
         </div>
       </div>
 
+      <!-- Notifications -->
+      <transition-group name="notification">
+        <q-banner v-if="successMessage" key="success" class="bg-positive text-white q-mb-md">
+          <template v-slot:avatar>
+            <q-icon name="check_circle" />
+          </template>
+          {{ successMessage }}
+          <template v-slot:action>
+            <q-btn flat color="white" icon="close" @click="successMessage = ''" />
+          </template>
+        </q-banner>
+
+        <q-banner v-if="errorMessage" key="error" class="bg-negative text-white q-mb-md">
+          <template v-slot:avatar>
+            <q-icon name="error" />
+          </template>
+          {{ errorMessage }}
+          <template v-slot:action>
+            <q-btn flat color="white" icon="close" @click="errorMessage = ''" />
+          </template>
+        </q-banner>
+      </transition-group>
+
       <q-card-section>
         <div class="row items-center justify-between">
           <div class="text-h5 text-primary text-weight-bold">
@@ -287,6 +310,8 @@ const user = ref(JSON.parse(localStorage.getItem('user')) || { id: 1, nom: 'Admi
 const showAddModal = ref(false);
 const showEditModal = ref(false);
 const loading = ref(false);
+const successMessage = ref('');
+const errorMessage = ref('');
 
 // Formulaires
 const newApprovisionnement = ref({
@@ -360,33 +385,35 @@ function formatDate(dateString) {
 
 async function onSubmit() {
   loading.value = true;
+  errorMessage.value = '';
+  successMessage.value = '';
+
   try {
     const payload = {
-      id_User: Number(user.value.id), // Maintenant avec U majuscule
+      id_User: Number(user.value.id),
       id_produit: Number(newApprovisionnement.value.id_produit),
       id_fournisseur: Number(newApprovisionnement.value.id_fournisseur),
       quantite: Number(newApprovisionnement.value.quantite),
       prix_unitaire: parseFloat(newApprovisionnement.value.prix_unitaire)
     };
 
-    console.log('Données préparées:', payload);
+    const result = await approvisionnementStore.saveApprovisionnement(payload);
 
-    const response = await approvisionnementStore.saveApprovisionnement(payload);
-
-    $q.notify({
-      type: 'positive',
-      message: response.message || 'Approvisionnement enregistré',
-      timeout: 3000
-    });
-
-    showAddModal.value = false;
-    resetForm();
+    if (result.success) {
+      successMessage.value = result.message;
+      showAddModal.value = false;
+      resetForm();
+      await approvisionnementStore.fetchApprovisionnements();
+    } else {
+      throw new Error(result.message || "Erreur inconnue");
+    }
 
   } catch (error) {
-    $q.notify({
-      type: 'negative',
+    errorMessage.value = error.message;
+    console.error("Erreur détaillée:", {
       message: error.message,
-      timeout: 5000
+      stack: error.stack,
+      response: error.response?.data
     });
   } finally {
     loading.value = false;
@@ -394,63 +421,43 @@ async function onSubmit() {
 }
 async function onUpdate() {
   loading.value = true;
+  errorMessage.value = '';
+  successMessage.value = '';
+
   try {
-    // Validation renforcée
-    const requiredFields = {
-      'Fournisseur': editApprovisionnementData.value.id_fournisseur,
-      'Quantité': editApprovisionnementData.value.quantite,
-      'Prix unitaire': editApprovisionnementData.value.prix_unitaire
+    // Préparation des données pour le store
+    const updateData = {
+      id_approvisionnement: editApprovisionnementData.value.id_approvisionnement,
+      id_produit: editApprovisionnementData.value.id_produit,
+      id_fournisseur: editApprovisionnementData.value.id_fournisseur,
+      quantite: editApprovisionnementData.value.quantite,
+      prix_unitaire: editApprovisionnementData.value.prix_unitaire,
+      id_User: user.value.id
     };
 
-    Object.entries(requiredFields).forEach(([field, value]) => {
-      if (!value && value !== 0) throw new Error(`${field} est requis`);
-      if (field === 'Quantité' && value <= 0) throw new Error("La quantité doit être positive");
-      if (field === 'Prix unitaire' && value < 0) throw new Error("Le prix doit être positif");
-    });
+    console.log("Données envoyées:", updateData); // Debug
 
-    // Préparation FormData pour l'API
-    const formData = new FormData();
-    formData.append('id_approvisionnement', editApprovisionnementData.value.id_approvisionnement);
-    formData.append('id_User', user.value.id);
-    formData.append('id_produit', editApprovisionnementData.value.id_produit);
-    formData.append('id_fournisseur', editApprovisionnementData.value.id_fournisseur);
-    formData.append('quantite', editApprovisionnementData.value.quantite);
-    formData.append('prix_unitaire', editApprovisionnementData.value.prix_unitaire);
+    const result = await approvisionnementStore.updateApprovisionnement(updateData);
 
-    // Debug: afficher le contenu de FormData
-    for (let [key, value] of formData.entries()) {
-      console.log(`${key}: ${value}`);
+    if (result.success) {
+      successMessage.value = result.message;
+      showEditModal.value = false;
+      await approvisionnementStore.fetchApprovisionnements();
+    } else {
+      throw new Error(result.message || "Erreur inconnue");
     }
-
-    // Envoi à l'API
-    const response = await approvisionnementStore.updateApprovisionnement(formData);
-
-    if (!response?.succes) {
-      throw new Error(response?.message || "Réponse invalide du serveur");
-    }
-
-    // Feedback utilisateur
-    $q.notify({
-      type: 'positive',
-      message: response.message || "Modification enregistrée avec succès",
-      timeout: 3000,
-      position: 'top'
-    });
-
-    // Fermeture du modal et rafraîchissement
-    showEditModal.value = false;
-    await approvisionnementStore.fetchApprovisionnements();
-
   } catch (error) {
+    errorMessage.value = error.message;
     console.error("Erreur détaillée:", {
       message: error.message,
       stack: error.stack,
       response: error.response?.data
     });
 
+    // Notification Quasar
     $q.notify({
       type: 'negative',
-      message: error.message || "Erreur technique lors de la modification",
+      message: error.message,
       timeout: 5000,
       position: 'top',
       actions: [{ icon: 'close', color: 'white' }]
@@ -459,6 +466,7 @@ async function onUpdate() {
     loading.value = false;
   }
 }
+
 async function confirmDelete(id) {
   $q.dialog({
     title: 'Confirmer la suppression',
@@ -467,39 +475,35 @@ async function confirmDelete(id) {
     persistent: true,
     ok: {
       label: 'Supprimer',
-      color: 'negative',
-      loading: loading.value // Ajout du state de loading
+      color: 'negative'
     }
   }).onOk(async () => {
     loading.value = true;
+    errorMessage.value = '';
+    successMessage.value = '';
+
     try {
       const result = await approvisionnementStore.deleteApprovisionnement(id);
-      
-      $q.notify({
-        type: 'positive',
-        message: result.message || 'Suppression réussie',
-        timeout: 3000,
-        position: 'top'
-      });
 
-      // Rechargement des données
-      await approvisionnementStore.fetchApprovisionnements();
+      if (result.success) {
+        successMessage.value = result.message;
+        await approvisionnementStore.fetchApprovisionnements();
+      } else {
+        throw new Error(result.message || "Erreur inconnue");
+      }
 
     } catch (error) {
-      console.error('Erreur complète:', error);
-      $q.notify({
-        type: 'negative',
-        message: error.message || 'Erreur inconnue lors de la suppression',
-        timeout: 5000,
-        position: 'top',
-        actions: [{ icon: 'close', color: 'white' }]
+      errorMessage.value = error.message || "Erreur lors de la suppression";
+      console.error("Erreur complète:", {
+        message: error.message,
+        stack: error.stack,
+        response: error.response?.data
       });
     } finally {
       loading.value = false;
     }
   });
 }
-
 function editApprovisionnement(item) {
   editApprovisionnementData.value = {
     id_approvisionnement: item.id_approvisionnement,
@@ -532,49 +536,10 @@ onMounted(async () => {
       fournisseurStore.fetchFournisseurs()
     ]);
   } catch (error) {
+    errorMessage.value = "Erreur lors du chargement des données";
     console.error("Erreur:", error);
-    $q.notify({
-      type: 'negative',
-      message: "Erreur lors du chargement des données",
-      timeout: 5000
-    });
   } finally {
     loading.value = false;
   }
 });
 </script>
-
-<style scoped>
-.approvisionnement-form-bg {
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ed 100%);
-  min-height: 100vh;
-}
-
-.approvisionnement-form-card {
-  max-width: 1200px;
-  margin: 0 auto;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-}
-
-.approvisionnement-title-bar {
-  background: linear-gradient(90deg, #1976d2 0%, #2196f3 100%);
-  border-radius: 10px 10px 0 0;
-}
-
-.q-table {
-  font-size: 14px;
-}
-
-.q-table th {
-  font-weight: 600;
-}
-
-.q-table td {
-  padding: 8px 16px;
-}
-
-.q-table__top {
-  padding: 12px 16px;
-}
-</style>

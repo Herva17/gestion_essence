@@ -157,6 +157,21 @@
             </q-item-section>
             <q-item-section>Commande</q-item-section>
           </q-item>
+
+          <q-item
+            to="/Main/commande-vente"
+            exact
+            clickable
+            v-ripple
+            :active="link === 'vente'"
+            @click="updateLink('vente')"
+            :class="{ 'my-menu-link': link === 'commande' }"
+          >
+            <q-item-section avatar>
+              <q-icon name="shopping_cart" />
+            </q-item-section>
+            <q-item-section>Ventes</q-item-section>
+          </q-item>
       <!-- Section Rapports ajoutée ici -->
           <q-separator spaced />
           <div class="q-pl-md q-pb-xs text-grey-8 text-caption">

@@ -19,6 +19,7 @@ const routes = [
           { path: "categorie-form", component: () => import("pages/GestionStock/CategorieForm.vue") },
           { path: "client-form", component: () => import("pages/GestionCommande/ClientForm.vue") },
           { path: "commande-form", component: () => import("pages/GestionCommande/CommandeForm.vue") },
+          { path: "commande-vente", component: () => import("pages/GestionCommande/VenteForm.vue") },
             {
         path: "rapport_fiche-stock",
         component: () => import("pages/Rapport/FicheStock.vue"), // Ajout de la route pour FacturePage
@@ -49,7 +50,7 @@ const routes = [
           { path: "client-form", component: () => import("pages/GestionCommande/ClientForm.vue") },
           { path: "mouvement-form", component: () => import("pages/GestionStock/MouvementForm.vue") },
           { path: "commande-form", component: () => import("pages/GestionCommande/CommandeForm.vue") },
-
+           { path: "commande-vente", component: () => import("pages/GestionCommande/VenteForm.vue") },
         ],
       },
 

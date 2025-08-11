@@ -103,6 +103,21 @@
             <q-item-section>Commande</q-item-section>
           </q-item>
 
+              <q-item
+            to="/com/commande-vente"
+            exact
+            clickable
+            v-ripple
+            :active="link === 'commande'"
+            @click="updateLink('commande')"
+            :class="{ 'my-menu-link': link === 'commande' }"
+          >
+            <q-item-section avatar>
+              <q-icon name="shopping_cart" />
+            </q-item-section>
+            <q-item-section>ventes</q-item-section>
+          </q-item>
+
           <q-item
             to="/com/mouvement-form"
             exact
