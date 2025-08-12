@@ -169,5 +169,22 @@ function rechercher_produits()
     }
 }
 
+function fiche_stock() {
+    $result = Produit::fiche_stock();
+    
+    if ($result['success']) {
+        echo json_encode([
+            "succes" => true,
+            "data" => $result['data'],
+            "totaux" => $result['totaux']
+        ]);
+    } else {
+        echo json_encode([
+            "succes" => false,
+            "message" => $result['message'] ?? "Erreur lors de la génération de la fiche de stock"
+        ]);
+    }
+}
+
 
 // Gestion des requêtes

@@ -3,7 +3,7 @@
     <q-card class="q-pa-lg approvisionnement-form-card">
       <!-- Bandeau titre -->
       <div class="approvisionnement-title-bar q-pa-md q-mb-md row items-center justify-between">
-        <div class="text-h5 text-white text-weight-bold">
+        <div class="text-h4 text-blue text-weight-bold">
           <q-icon name="inventory_2" class="q-mr-sm" /> Gestion des Approvisionnements
         </div>
         <div class="text-white">
@@ -32,8 +32,27 @@
             <q-btn flat color="white" icon="close" @click="errorMessage = ''" />
           </template>
         </q-banner>
-      </transition-group>
 
+        <!-- Alerte stock faible -->
+        <q-banner
+          v-if="lowStockProducts.length > 0"
+          key="lowStock"
+          class="bg-orange text-white q-mb-md"
+        >
+          <template v-slot:avatar>
+            <q-icon name="warning" />
+          </template>
+          <strong>ALERTE STOCK FAIBLE :</strong>
+          Les produits suivants doivent être réapprovisionnés (stock ≤ 5) :
+          <span v-for="(product, index) in lowStockProducts" :key="product.id">
+            {{ product.designation }} ({{ product.stock_restant }})
+            {{ index < lowStockProducts.length - 1 ? ',' : '' }}
+          </span>
+          <template v-slot:action>
+            <q-btn flat color="white" icon="close" @click="dismissLowStockAlert" />
+          </template>
+        </q-banner>
+      </transition-group>
       <q-card-section>
         <div class="row items-center justify-between">
           <div class="text-h5 text-primary text-weight-bold">
@@ -290,11 +309,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import { useApprovisionnementStore } from 'src/stores/ApprovisionnementStore';
 import { useCategorieStore } from 'src/stores/ProduitStore';
 import { useFournisseurStore } from 'src/stores/FournisseurStore';
+import { useStockStore } from 'src/stores/stockStore';
 
 const $q = useQuasar();
 
@@ -302,6 +322,7 @@ const $q = useQuasar();
 const approvisionnementStore = useApprovisionnementStore();
 const categorieStore = useCategorieStore();
 const fournisseurStore = useFournisseurStore();
+const stockStore = useStockStore();
 
 // Utilisateur connecté
 const user = ref(JSON.parse(localStorage.getItem('user')) || { id: 1, nom: 'Administrateur' });
@@ -312,6 +333,74 @@ const showEditModal = ref(false);
 const loading = ref(false);
 const successMessage = ref('');
 const errorMessage = ref('');
+const showLowStockAlert = ref(true); // Contrôle l'affichage de l'alerte
+
+// Produits en stock faible
+const lowStockProducts = computed(() => {
+  if (!stockStore.stockData) return [];
+
+  return stockStore.stockData
+    .filter(item => item.stock_restant_m3 <= 5)
+    .map(item => ({
+      id: item.id_produit,
+      designation: item.produit,
+      stock_restant: item.stock_restant_m3.toFixed(3) + ' m³'
+    }));
+});
+
+// Méthode pour masquer l'alerte
+const dismissLowStockAlert = () => {
+  showLowStockAlert.value = false;
+};
+
+// Surveiller les changements de stock
+watch(() => stockStore.stockData, (newVal) => {
+  if (newVal && newVal.some(item => item.stock_restant_m3 <= 5)) {
+    showLowStockAlert.value = true;
+
+    // Notification push si stock très faible (≤2)
+    const criticalStock = newVal.filter(item => item.stock_restant_m3 <= 2);
+    if (criticalStock.length > 0) {
+      $q.notify({
+        type: 'negative',
+        message: `STOCK CRITIQUE pour ${criticalStock.map(p => p.produit).join(', ')}`,
+        timeout: 0, // Ne pas disparaître automatiquement
+        position: 'top-right',
+        actions: [
+          {
+            label: 'Voir',
+            color: 'white',
+            handler: () => {
+              // Rediriger vers la page de réapprovisionnement
+              // (à adapter selon votre routing)
+            }
+          }
+        ]
+      });
+    }
+  }
+}, { deep: true });
+
+// Initialisation
+onMounted(async () => {
+  loading.value = true;
+  try {
+    await Promise.all([
+      approvisionnementStore.fetchApprovisionnements(),
+      categorieStore.fetchCategories(),
+      fournisseurStore.fetchFournisseurs(),
+      stockStore.fetchStockData({
+        username: user.value.username,
+        password: 'mdp' // À remplacer par le mot de passe sécurisé
+      })
+    ]);
+  } catch (error) {
+    errorMessage.value = "Erreur lors du chargement des données";
+    console.error("Erreur:", error);
+  } finally {
+    loading.value = false;
+  }
+});
 
 // Formulaires
 const newApprovisionnement = ref({

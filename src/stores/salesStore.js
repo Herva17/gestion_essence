@@ -14,7 +14,8 @@ export const useSalesStore = defineStore('sales', () => {
     return apiData.map(item => ({
       date_vente: item.date_vente,
       produit: item.produit,
-      quantite: parseInt(item.quantite),
+      quantite_m3: parseFloat(item.quantite_m3),
+      quantite_litre: parseInt(item.quantite_litre),
       prix_usd: parseFloat(item.prix_usd),
       total_usd: parseFloat(item.total_usd),
       total_fc: parseFloat(item.total_fc),
@@ -60,7 +61,8 @@ export const useSalesStore = defineStore('sales', () => {
   // Calcul des totaux pour le journal des ventes
   const getSalesTotals = () => {
     return {
-      totalQuantity: salesData.value.reduce((sum, sale) => sum + sale.quantite, 0),
+      totalQuantityM3: salesData.value.reduce((sum, sale) => sum + sale.quantite_m3, 0),
+      totalQuantityLitre: salesData.value.reduce((sum, sale) => sum + sale.quantite_litre, 0),
       totalUSD: salesData.value.reduce((sum, sale) => sum + sale.total_usd, 0),
       totalFC: salesData.value.reduce((sum, sale) => sum + sale.total_fc, 0)
     }
@@ -70,12 +72,13 @@ export const useSalesStore = defineStore('sales', () => {
   const exportData = () => {
     return {
       headers: [
-        'Date', 'Produit', 'Quantité', 'Prix USD', 'Total USD', 'Total FC', 'Client', 'Vendeur'
+        'Date', 'Produit', 'Quantité (m³)', 'Quantité (litres)', 'Prix USD', 'Total USD', 'Total FC', 'Client', 'Vendeur'
       ],
       data: salesData.value.map(sale => ({
         date: date.formatDate(sale.date_vente, 'DD/MM/YYYY HH:mm'),
         produit: sale.produit,
-        quantite: sale.quantite,
+        quantite_m3: sale.quantite_m3.toFixed(3),
+        quantite_litre: sale.quantite_litre.toFixed(0),
         prix_usd: sale.prix_usd.toFixed(2),
         total_usd: sale.total_usd.toFixed(2),
         total_fc: sale.total_fc.toFixed(0),

@@ -105,7 +105,8 @@
               <th class="text-left">N°</th>
               <th class="text-left">Date/Heure</th>
               <th class="text-left">Produit</th>
-              <th class="text-right">Quantité(L)</th>
+              <th class="text-right">Quantité (m³)</th>
+              <th class="text-right">Quantité (L)</th>
               <th class="text-right">Prix Unitaire ($)</th>
               <th class="text-right">Total ($)</th>
               <th class="text-right">Total (FC)</th>
@@ -118,7 +119,8 @@
               <td class="text-left">{{ index + 1 }}</td>
               <td class="text-left">{{ formatDateTime(sale.date_vente) }}</td>
               <td class="text-left">{{ sale.produit }}</td>
-              <td class="text-right">{{ sale.quantite }}</td>
+              <td class="text-right">{{ sale.quantite_m3.toFixed(3) }}</td>
+              <td class="text-right">{{ sale.quantite_litre.toFixed(0) }}</td>
               <td class="text-right">{{ sale.prix_usd.toFixed(2) }}</td>
               <td class="text-right">{{ sale.total_usd.toFixed(2) }}</td>
               <td class="text-right">{{ sale.total_fc.toFixed(0) }}</td>
@@ -129,7 +131,8 @@
           <tfoot>
             <tr class="bg-grey-3">
               <td colspan="3" class="text-right text-weight-bold">Totaux:</td>
-              <td class="text-right text-weight-bold">{{ totals.totalQuantity }}</td>
+              <td class="text-right text-weight-bold">{{ totals.totalQuantityM3.toFixed(3) }}</td>
+              <td class="text-right text-weight-bold">{{ totals.totalQuantityLitre.toFixed(0) }}</td>
               <td></td>
               <td class="text-right text-weight-bold">{{ totals.totalUSD.toFixed(2) }}</td>
               <td class="text-right text-weight-bold">{{ totals.totalFC.toFixed(0) }}</td>
@@ -141,7 +144,7 @@
 
       <!-- Résumé -->
       <div class="row q-mt-md print-summary">
-        <div class="col-md-4 col-sm-12 q-pa-sm">
+        <div class="col-md-3 col-sm-6 q-pa-sm">
           <q-card class="bg-blue-1">
             <q-card-section>
               <div class="text-h6 text-center">Nombre de Ventes</div>
@@ -149,19 +152,27 @@
             </q-card-section>
           </q-card>
         </div>
-        <div class="col-md-4 col-sm-12 q-pa-sm">
+        <div class="col-md-3 col-sm-6 q-pa-sm">
           <q-card class="bg-green-1">
             <q-card-section>
-              <div class="text-h6 text-center">Total USD</div>
-              <div class="text-h4 text-center text-green">{{ totals.totalUSD.toFixed(2) }}</div>
+              <div class="text-h6 text-center">Total m³</div>
+              <div class="text-h4 text-center text-green">{{ totals.totalQuantityM3.toFixed(3) }}</div>
             </q-card-section>
           </q-card>
         </div>
-        <div class="col-md-4 col-sm-12 q-pa-sm">
+        <div class="col-md-3 col-sm-6 q-pa-sm">
           <q-card class="bg-orange-1">
             <q-card-section>
+              <div class="text-h6 text-center">Total USD</div>
+              <div class="text-h4 text-center text-orange">{{ totals.totalUSD.toFixed(2) }}</div>
+            </q-card-section>
+          </q-card>
+        </div>
+        <div class="col-md-3 col-sm-6 q-pa-sm">
+          <q-card class="bg-red-1">
+            <q-card-section>
               <div class="text-h6 text-center">Total FC</div>
-              <div class="text-h4 text-center text-orange">{{ totals.totalFC.toFixed(0) }}</div>
+              <div class="text-h4 text-center text-red">{{ totals.totalFC.toFixed(0) }}</div>
             </q-card-section>
           </q-card>
         </div>
@@ -234,7 +245,7 @@ export default {
     }
 
     const exportExcel = () => {
-      console.log('Export des données:', salesStore.salesData)
+      salesStore.exportData()
     }
 
     const formatDateTime = (dateString) => {
@@ -253,14 +264,7 @@ export default {
       loading: computed(() => salesStore.loading),
       error: computed(() => salesStore.error),
       authError: computed(() => salesStore.authError),
-      totals: computed(() => {
-        const data = salesStore.salesData
-        return {
-          totalQuantity: data.reduce((sum, sale) => sum + sale.quantite, 0),
-          totalUSD: data.reduce((sum, sale) => sum + sale.total_usd, 0),
-          totalFC: data.reduce((sum, sale) => sum + sale.total_fc, 0)
-        }
-      }),
+      totals: computed(() => salesStore.getSalesTotals()),
       authCredentials,
       showAuthDialog,
       fetchData,

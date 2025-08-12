@@ -26,10 +26,10 @@ if (
         case 'client':
             require_once("Routes/client.php");
             exit;
-            case 'fournisseur':
+        case 'fournisseur':
             require_once("Routes/foournisseur.php");
             exit;
-             case 'approvisionnement':
+        case 'approvisionnement':
             require_once("Routes/approvisionnement.php");
             exit;
         case 'mouvement':
@@ -43,6 +43,9 @@ if (
             exit;
         case 'commande':
             require_once("Routes/Commande.php");
+            exit;
+        case 'vente':
+            require_once("Routes/Ventes.php");
             exit;
         default:
             http_response_code(404);

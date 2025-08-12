@@ -47,22 +47,22 @@
         </q-card>
       </div>
 
-      <!-- Carte Mouvement Stock -->
+      <!-- Carte Ventes -->
       <div class="col-12 col-sm-6 col-md-3">
         <q-card
           class="pro-card bg-gradient-red cursor-pointer"
-          @click="$router.push({ name: 'mouvement-form' })"
+          @click="$router.push({ name: 'vente-table' })"
         >
           <q-card-section class="flex items-center">
             <q-avatar
               size="56px"
               class="q-mr-md bg-white text-red-600 shadow-2"
             >
-              <q-icon name="swap_horiz" size="32px" />
+              <q-icon name="point_of_sale" size="32px" />
             </q-avatar>
             <div>
               <div class="text-h5 text-white text-weight-bold">
-                {{  }}
+                {{ nbVentes }}
               </div>
               <div class="text-white text-subtitle2">Ventes</div>
             </div>
@@ -79,11 +79,13 @@ import { useCategorieStore } from "src/stores/ProduitStore";
 import { useMouvementStore } from "src/stores/MouvementStore";
 import { useCommandeStore } from "src/stores/CommandeStore";
 import { useApprovisionnementStore } from "src/stores/ApprovisionnementStore";
+import { useVenteStore } from "src/stores/VenteStore";
 
 const categorieStore = useCategorieStore();
 const mouvementStore = useMouvementStore();
 const commandeStore = useCommandeStore();
 const approvisionnementStore = useApprovisionnementStore();
+const venteStore = useVenteStore();
 
 // Initialisation
 const loading = ref(true);
@@ -95,7 +97,8 @@ onMounted(async () => {
       categorieStore.fetchTotalCategories(),
       mouvementStore.fetchTotalMouvements(),
       commandeStore.fetchTotalCommandes(),
-      approvisionnementStore.countApprovisionnements()
+      approvisionnementStore.countApprovisionnements(),
+      venteStore.fetchTotalVentes() // Chargement du nombre total de ventes
     ]);
   } catch (error) {
     console.error("Erreur de chargement:", error);
@@ -109,6 +112,7 @@ const nbCategories = computed(() => categorieStore.totalCategories || 0);
 const nbMouvements = computed(() => mouvementStore.totalMouvements || 0);
 const nbCommandes = computed(() => commandeStore.totalCommandes || 0);
 const nbApprovisionnements = computed(() => approvisionnementStore.totalApprovisionnements || 0);
+const nbVentes = computed(() => venteStore.totalVentes || 0); // Nombre total de ventes
 </script>
 
 <style scoped>

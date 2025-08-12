@@ -6,7 +6,7 @@
       <div class="header-section">
         <img :src="logoUrl" alt="Logo" class="logo" />
         <div class="header-info">
-          <h1>Station KMJ</h1>
+          <h1>Station KMJ - Fiche de Stock FIFO</h1>
           <p class="date-info">
             Date: {{ currentDate }} | MAJ: {{ lastUpdate ? formatDate(lastUpdate) : 'N/A' }}
             <q-btn
@@ -91,9 +91,9 @@
     </div>
 
     <!-- Zone à imprimer -->
-    <div class="print-area">
+     <div class="print-area">
       <div class="print-header bg-primary text-white q-pa-md text-center">
-        <h2 class="text-h4 q-my-none">FICHE DE STOCK</h2>
+        <h2 class="text-h4 q-my-none">FICHE DE STOCK FIFO</h2>
         <p class="q-my-none">
           Date: {{ currentDate }} | Dernière mise à jour: {{ lastUpdate ? formatDate(lastUpdate) : 'N/A' }}
         </p>
@@ -105,100 +105,127 @@
           <thead>
             <tr class="bg-primary text-white">
               <th rowspan="2" class="text-left">Produit</th>
-              <th colspan="4" class="text-center">Entrées</th>
-              <th colspan="4" class="text-center">Sorties</th>
-              <th colspan="4" class="text-center">Stock</th>
+              <th colspan="5" class="text-center">ENTREE</th>
+              <th colspan="5" class="text-center">SORTIE</th>
+              <th colspan="5" class="text-center">STOCK</th>
             </tr>
             <tr class="bg-primary text-white">
-              <!-- Sous-colonnes Entrées -->
+              <!-- Sous-colonnes Entrée -->
               <th class="text-center">Date</th>
-              <th class="text-right">Quantité(MC)</th>
+              <th class="text-right">Qte (m³)</th>
+              <th class="text-right">Qte (L)</th>
               <th class="text-right">P.U ($)</th>
               <th class="text-right">P.T ($)</th>
 
-              <!-- Sous-colonnes Sorties -->
+              <!-- Sous-colonnes Sortie -->
               <th class="text-center">Date</th>
-              <th class="text-right">Quantité(MC)</th>
+              <th class="text-right">Qte (m³)</th>
+              <th class="text-right">Qte (L)</th>
               <th class="text-right">P.U ($)</th>
               <th class="text-right">P.T ($)</th>
 
               <!-- Sous-colonnes Stock -->
               <th class="text-center">Date</th>
-              <th class="text-right">Quantité(MC)</th>
+              <th class="text-right">Qte (m³)</th>
+              <th class="text-right">Qte (L)</th>
               <th class="text-right">P.U ($)</th>
               <th class="text-right">P.T ($)</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in filteredStockData" :key="item.produit">
+            <tr v-for="(item, index) in filteredStockData" :key="index">
               <td class="text-left">{{ item.produit }}</td>
 
-              <!-- Colonne Entrées -->
-              <td class="text-center">{{ formatDate(item.date_creation) }}</td>
-              <td class="text-right">{{ item.entrees }}</td>
-              <td class="text-right">{{ item.prix_usd }}</td>
-              <td class="text-right">{{ item.entrees * item.prix_usd }}</td>
+              <!-- Colonne Entrée -->
+              <td class="text-center">{{ formatDate(item.date_entree) }}</td>
+              <td class="text-right">{{ item.quantite_entree_m3.toFixed(3) }}</td>
+              <td class="text-right">{{ item.quantite_entree_litre.toFixed(0) }}</td>
+              <td class="text-right">{{ item.prix_unitaire.toFixed(2) }}</td>
+              <td class="text-right">{{ (item.quantite_entree_m3 * item.prix_unitaire).toFixed(2) }}</td>
 
-              <!-- Colonne Sorties -->
-              <td class="text-center">{{ item.derniere_sortie ? formatDate(item.derniere_sortie) : '-' }}</td>
-              <td class="text-right">{{ item.sorties }}</td>
-              <td class="text-right">{{ item.prix_usd }}</td>
-              <td class="text-right">{{ item.sorties * item.prix_usd }}</td>
+              <!-- Colonne Sortie -->
+              <td class="text-center">{{ item.date_sortie ? formatDate(item.date_sortie) : '-' }}</td>
+              <td class="text-right">{{ item.quantite_sortie_m3.toFixed(3) }}</td>
+              <td class="text-right">{{ item.quantite_sortie_litre.toFixed(0) }}</td>
+              <td class="text-right">{{ item.prix_unitaire.toFixed(2) }}</td>
+              <td class="text-right">{{ (item.quantite_sortie_m3 * item.prix_unitaire).toFixed(2) }}</td>
 
               <!-- Colonne Stock -->
               <td class="text-center">{{ currentDate }}</td>
-              <td class="text-right text-weight-bold">{{ item.stock_actuel }}</td>
-              <td class="text-right">{{ item.prix_usd }}</td>
-              <td class="text-right">{{ item.stock_actuel * item.prix_usd }}</td>
+              <td class="text-right text-weight-bold">{{ item.stock_restant_m3.toFixed(3) }}</td>
+              <td class="text-right text-weight-bold">{{ item.stock_restant_litre.toFixed(0) }}</td>
+              <td class="text-right">{{ item.prix_unitaire.toFixed(2) }}</td>
+              <td class="text-right text-weight-bold">{{ item.valeur_stock.toFixed(2) }}</td>
             </tr>
           </tbody>
           <tfoot>
             <tr class="bg-grey-3">
-              <td colspan="1" class="text-right text-weight-bold">Total Général:</td>
-              <!-- Totaux Entrées -->
-              <td colspan="3"></td>
-              <td class="text-right text-weight-bold">{{ totals.totalEntreesUSD }}</td>
+              <td class="text-right text-weight-bold">Totaux:</td>
 
-              <!-- Totaux Sorties -->
-              <td colspan="3"></td>
-              <td class="text-right text-weight-bold">{{ totals.totalSortiesUSD }}</td>
+              <!-- Totaux Entrée -->
+              <td></td>
+              <td class="text-right">{{ totals.totalEntreeM3 }}</td>
+              <td class="text-right">{{ totals.totalEntreeLitre }}</td>
+              <td></td>
+              <td class="text-right">{{ totals.totalEntreesUSD }}</td>
+
+              <!-- Totaux Sortie -->
+              <td></td>
+              <td class="text-right">{{ totals.totalSortieM3 }}</td>
+              <td class="text-right">{{ totals.totalSortieLitre }}</td>
+              <td></td>
+              <td class="text-right">{{ totals.totalSortiesUSD }}</td>
 
               <!-- Totaux Stock -->
-              <td colspan="2"></td>
-              <td class="text-right text-weight-bold text-red">{{ totals.totalStock }}</td>
-              <td class="text-right text-weight-bold">{{ totals.totalValueUSD }}</td>
+              <td></td>
+              <td class="text-right text-weight-bold text-red">{{ totals.totalStockM3 }}</td>
+              <td class="text-right text-weight-bold text-red">{{ totals.totalStockLitre }}</td>
+              <td></td>
+              <td class="text-right text-weight-bold">{{ totals.totalValeurUSD }}</td>
             </tr>
           </tfoot>
         </q-markup-table>
       </div>
 
       <!-- Résumé -->
-      <!-- <div class="row q-mt-md print-summary">
-        <div class="col-md-4 col-sm-12 q-pa-sm">
+      <div class="row q-mt-md print-summary">
+        <div class="col-md-3 col-sm-6 q-pa-sm">
           <q-card class="bg-blue-1">
             <q-card-section>
               <div class="text-h6 text-center">Total Entrées</div>
-              <div class="text-h4 text-center text-blue">{{ totals.totalEntrees }} MC</div>
+              <div class="text-h4 text-center text-blue">{{ totals.totalEntreeM3 }} m³</div>
+              <div class="text-subtitle2 text-center">{{ totals.totalEntreeLitre }} L</div>
             </q-card-section>
           </q-card>
         </div>
-        <div class="col-md-4 col-sm-12 q-pa-sm">
+        <div class="col-md-3 col-sm-6 q-pa-sm">
           <q-card class="bg-green-1">
             <q-card-section>
               <div class="text-h6 text-center">Total Sorties</div>
-              <div class="text-h4 text-center text-green">{{ totals.totalSorties }} MC</div>
+              <div class="text-h4 text-center text-green">{{ totals.totalSortieM3 }} m³</div>
+              <div class="text-subtitle2 text-center">{{ totals.totalSortieLitre }} L</div>
             </q-card-section>
           </q-card>
         </div>
-        <div class="col-md-4 col-sm-12 q-pa-sm">
+        <div class="col-md-3 col-sm-6 q-pa-sm">
           <q-card class="bg-orange-1">
             <q-card-section>
               <div class="text-h6 text-center">Stock Actuel</div>
-              <div class="text-h4 text-center text-orange">{{ totals.totalStock }} MC</div>
+              <div class="text-h4 text-center text-orange">{{ totals.totalStockM3 }} m³</div>
+              <div class="text-subtitle2 text-center">{{ totals.totalStockLitre }} L</div>
             </q-card-section>
           </q-card>
         </div>
-      </div> -->
+        <div class="col-md-3 col-sm-6 q-pa-sm">
+          <q-card class="bg-red-1">
+            <q-card-section>
+              <div class="text-h6 text-center">Valeur Stock</div>
+              <div class="text-h4 text-center text-red">{{ totals.totalValeurUSD }} $</div>
+              <div class="text-subtitle2 text-center">{{ (totals.totalValeurUSD * 3000).toFixed(0) }} FC</div>
+            </q-card-section>
+          </q-card>
+        </div>
+      </div>
     </div>
 
     <!-- Actions (non imprimables) -->
@@ -252,11 +279,11 @@ export default {
     }
 
     const exportExcel = () => {
-      console.log('Export des données:', stockStore.stockData)
+      stockStore.exportData()
     }
 
     const formatDate = (dateString) => {
-      return dateString ? date.formatDate(dateString, 'DD/MM/YYYY HH:mm') : '-'
+      return dateString ? date.formatDate(dateString, 'DD/MM/YYYY') : '-'
     }
 
     // Filtre les données selon le terme de recherche
@@ -266,32 +293,6 @@ export default {
       return stockStore.stockData.filter(item =>
         item?.produit?.toLowerCase()?.includes(searchTerm.value.toLowerCase()) ?? false
       )
-    })
-
-    // Calcul des totaux basés sur les données filtrées
-    const totals = computed(() => {
-      const data = filteredStockData.value
-
-      const totalEntrees = data.reduce((sum, item) => sum + (item.entrees || 0), 0)
-      const totalSorties = data.reduce((sum, item) => sum + (item.sorties || 0), 0)
-      const totalStock = data.reduce((sum, item) => sum + (item.stock_actuel || 0), 0)
-
-      const totalEntreesUSD = data.reduce((sum, item) =>
-        sum + ((item.entrees || 0) * (item.prix_usd || 0)), 0).toFixed(2)
-      const totalSortiesUSD = data.reduce((sum, item) =>
-        sum + ((item.sorties || 0) * (item.prix_usd || 0)), 0).toFixed(2)
-      const totalValueUSD = data.reduce((sum, item) =>
-        sum + ((item.stock_actuel || 0) * (item.prix_usd || 0)), 0).toFixed(2)
-
-      return {
-        totalEntrees,
-        totalSorties,
-        totalStock,
-        totalEntreesUSD,
-        totalSortiesUSD,
-        totalValueUSD,
-        // Ajoutez ici d'autres totaux si nécessaire
-      }
     })
 
     onMounted(() => {
@@ -307,7 +308,7 @@ export default {
       error: computed(() => stockStore.error),
       authError: computed(() => stockStore.authError),
       lastUpdate: computed(() => stockStore.lastUpdate),
-      totals,
+      totals: computed(() => stockStore.totals()),
       authCredentials,
       showAuthDialog,
       searchTerm,
@@ -320,9 +321,10 @@ export default {
   }
 }
 </script>
+
 <style scoped>
 .stock-page {
-  max-width: 1400px;
+  max-width: 1800px;
   margin: 0 auto;
   padding: 20px;
 }
@@ -355,11 +357,19 @@ export default {
   overflow-x: auto;
 }
 
+.print-table {
+  font-size: 12px;
+}
+
+.print-table th {
+  white-space: nowrap;
+}
+
 /* Styles spécifiques pour l'impression */
 @media print {
   body {
     background: white;
-    font-size: 12px;
+    font-size: 10px;
     padding: 0;
     margin: 0;
   }
@@ -377,27 +387,27 @@ export default {
   .print-header {
     background-color: #1976d2 !important;
     color: white !important;
-    padding: 16px !important;
-    margin-bottom: 16px;
+    padding: 10px !important;
+    margin-bottom: 10px;
   }
 
   .print-table {
     width: 100% !important;
-    font-size: 10px;
+    font-size: 8px;
   }
 
   .print-table th {
     background-color: #1976d2 !important;
     color: white !important;
-    padding: 6px !important;
-  }
-
-  .print-table td {
     padding: 4px !important;
   }
 
+  .print-table td {
+    padding: 3px !important;
+  }
+
   .print-summary {
-    margin-top: 16px !important;
+    margin-top: 10px !important;
   }
 
   /* Masquer les éléments non désirés */

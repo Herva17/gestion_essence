@@ -17,6 +17,9 @@ if ($url_path1 === "produit") {
                 case "select_all":
                     selectionner_produits();
                     break;
+                     case "fiche_stock":
+                    fiche_stock();
+                    break;
                 case "compter":
                     compter_produits();
                     break;

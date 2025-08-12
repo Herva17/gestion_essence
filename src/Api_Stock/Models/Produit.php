@@ -148,6 +148,128 @@ class Produit
         }
     }
 
+public static function fiche_stock() {
+    // Connexion à la base de données
+      $data = get_connection();
+    
+    try {
+        $sql = "
+        WITH 
+        entrees AS (
+            SELECT 
+                a.id_produit,
+                p.designation AS produit,
+                a.id_approvisionnement,
+                a.date_approvisionnement AS date_entree,
+                a.quantite AS quantite_m3,
+                a.quantite * 1000 AS quantite_litre,
+                a.prix_unitaire,
+                'ENTREE' AS type_mouvement
+            FROM 
+                approvisionnement a
+            JOIN produit p ON a.id_produit = p.id
+        ),
+        
+        sorties AS (
+            SELECT 
+                c.Id_appro,
+                v.id_commande,
+                v.date_vente AS date_sortie,
+                v.quantite AS quantite_m3,
+                v.quantite * 1000 AS quantite_litre,
+                'SORTIE' AS type_mouvement
+            FROM 
+                vente v
+            JOIN commandes c ON v.id_commande = c.id
+        ),
+        
+        stock_fifo AS (
+            SELECT 
+                e.id_produit,
+                e.produit,
+                e.id_approvisionnement,
+                e.date_entree,
+                s.date_sortie,
+                e.prix_unitaire,
+                e.quantite_m3 AS quantite_entree_m3,
+                e.quantite_litre AS quantite_entree_litre,
+                COALESCE(s.quantite_m3, 0) AS quantite_sortie_m3,
+                COALESCE(s.quantite_litre, 0) AS quantite_sortie_litre,
+                (e.quantite_m3 - COALESCE(s.quantite_m3, 0)) AS stock_restant_m3,
+                (e.quantite_litre - COALESCE(s.quantite_litre, 0)) AS stock_restant_litre
+            FROM 
+                entrees e
+            LEFT JOIN sorties s ON e.id_approvisionnement = s.Id_appro
+        )
+        
+        SELECT 
+            id_produit,
+            produit,
+            id_approvisionnement,
+            date_entree,
+            date_sortie,
+            prix_unitaire,
+            quantite_entree_m3,
+            quantite_entree_litre,
+            quantite_sortie_m3,
+            quantite_sortie_litre,
+            stock_restant_m3,
+            stock_restant_litre,
+            (quantite_entree_m3 * prix_unitaire) AS valeur_entree,
+            (quantite_sortie_m3 * prix_unitaire) AS valeur_sortie,
+            (stock_restant_m3 * prix_unitaire) AS valeur_stock
+        FROM 
+            stock_fifo
+        ORDER BY 
+            id_produit, date_entree
+        ";
+
+        $stmt = $data->prepare($sql);
+        $stmt->execute();
+        
+        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Calcul des totaux par produit
+        $totaux = [];
+        foreach ($result as $row) {
+            $id_produit = $row['id_produit'];
+            
+            if (!isset($totaux[$id_produit])) {
+                $totaux[$id_produit] = [
+                    'produit' => $row['produit'],
+                    'total_entree_m3' => 0,
+                    'total_entree_litre' => 0,
+                    'total_sortie_m3' => 0,
+                    'total_sortie_litre' => 0,
+                    'stock_restant_m3' => 0,
+                    'stock_restant_litre' => 0,
+                    'valeur_stock' => 0
+                ];
+            }
+            
+            $totaux[$id_produit]['total_entree_m3'] += $row['quantite_entree_m3'];
+            $totaux[$id_produit]['total_entree_litre'] += $row['quantite_entree_litre'];
+            $totaux[$id_produit]['total_sortie_m3'] += $row['quantite_sortie_m3'];
+            $totaux[$id_produit]['total_sortie_litre'] += $row['quantite_sortie_litre'];
+            $totaux[$id_produit]['stock_restant_m3'] += $row['stock_restant_m3'];
+            $totaux[$id_produit]['stock_restant_litre'] += $row['stock_restant_litre'];
+            $totaux[$id_produit]['valeur_stock'] += $row['valeur_stock'];
+        }
+        
+        return [
+            'success' => true,
+            'data' => $result,
+            'totaux' => $totaux
+        ];
+        
+    } catch (PDOException $e) {
+        return [
+            'success' => false,
+            'message' => 'Erreur lors de la récupération de la fiche de stock: ' . $e->getMessage()
+        ];
+    }
+}
+
     /**
      * Compte le nombre total de produits
      * @return int

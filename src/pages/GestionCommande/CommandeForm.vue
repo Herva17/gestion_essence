@@ -492,16 +492,16 @@ const checkStock = () => {
   }
 
   remainingStock.value = selectedApproStock.value - newCommande.value.quantite;
-  stockAlert.value = remainingStock.value < 50;
+  stockAlert.value = remainingStock.value < 1;
 };
 
 const checkStockBeforeSubmit = async () => {
   checkStock();
-  
+
   if (stockAlert.value) {
     $q.notify({
       type: "negative",
-      message: `Stock insuffisant! Il resterait ${remainingStock.value} unités après cette commande (minimum 50 requis)`,
+      message: `Stock insuffisant! Il resterait ${remainingStock.value} unités après cette commande (minimum 1 MC requis)`,
       position: "top"
     });
     return;
